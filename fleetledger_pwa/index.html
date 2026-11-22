@@ -1,0 +1,2737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FleetLedger" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.json" />
+  <link id="appFavicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2310b981'/%3E%3Cstop offset='100%25' stop-color='%230f766e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='128' height='128' rx='28' fill='url(%23g)'/%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='40' cy='88' r='10'/%3E%3Ccircle cx='90' cy='88' r='10'/%3E%3Cpath d='M50 88H28V40h50v48m0-34h18l12 16v18H100m-22 0H60'/%3E%3C/g%3E%3C/svg%3E" />
+  <link id="appleTouchIcon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2310b981'/%3E%3Cstop offset='100%25' stop-color='%230f766e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='128' height='128' rx='28' fill='url(%23g)'/%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='40' cy='88' r='10'/%3E%3Ccircle cx='90' cy='88' r='10'/%3E%3Cpath d='M50 88H28V40h50v48m0-34h18l12 16v18H100m-22 0H60'/%3E%3C/g%3E%3C/svg%3E" />
+  <title>FleetLedger — Monthly Truck P&amp;L &amp; Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .print-card { box-shadow: none !important; border: 1px solid #cbd5e1 !important; break-inside: avoid; }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-slate-100/80 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased transition-colors duration-200">
+  <!-- Top Navigation -->
+  <header class="no-print sticky top-0 z-30 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 17H6V6h9v11m0-7h3.5l2.5 3v4h-2m-4 0h-2" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight truncate">FleetLedger</h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60">Pro Fleet</span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">Trip Log, POD &amp; Monthly P&amp;L</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btnAddTripTop" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/20 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          <span>Add Trip</span>
+        </button>
+        <button id="btnAddExpenseTop" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          <span class="hidden sm:inline">Add Expense</span>
+          <span class="sm:hidden">Expense</span>
+        </button>
+        <button id="btnHelpModal" type="button" title="Quick Guide" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-sm flex items-center justify-center transition">?</button>
+        <button id="btnThemeToggle" type="button" title="Toggle Dark Mode" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+          <svg id="iconSun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="iconMoon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 space-y-5">
+    <!-- Executive Hero & Control Banner -->
+    <section class="no-print relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white p-5 sm:p-6 shadow-xl border border-slate-800">
+      <div class="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-emerald-500/20 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-24 -left-20 w-64 h-64 rounded-full bg-cyan-500/15 blur-3xl"></div>
+
+      <div class="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div class="space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-medium text-emerald-200 backdrop-blur-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="heroPeriodLabel">All Fleet Vehicles • Nov 2026</span>
+          </div>
+          <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Monthly Net P&amp;L</div>
+            <div id="heroNetValue" class="num text-3xl sm:text-4xl font-extrabold tracking-tight text-emerald-400">₹0</div>
+            <span id="heroMarginPill" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">0.0% margin</span>
+          </div>
+          <div class="max-w-md space-y-1.5">
+            <div class="flex justify-between text-[11px] text-slate-300 font-medium">
+              <span>Cost-to-Revenue Ratio</span>
+              <span id="heroRatioText" class="num">0% expenses</span>
+            </div>
+            <div class="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+              <div id="heroRatioBar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 lg:items-end">
+          <div class="flex flex-wrap items-center gap-2 bg-white/10 backdrop-blur-md border border-white/15 p-2 rounded-2xl">
+            <div class="flex items-center gap-2 flex-1 min-w-[170px]">
+              <label for="selectTruck" class="text-[11px] font-semibold uppercase tracking-wider text-slate-300 pl-1">Vehicle</label>
+              <select id="selectTruck" class="w-full rounded-xl border border-white/15 bg-slate-900/90 text-white px-2.5 py-1.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"></select>
+            </div>
+            <div class="flex items-center gap-1">
+              <button id="btnPrevMonth" type="button" title="Previous Month" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <input id="inputMonth" type="month" class="rounded-xl border border-white/15 bg-slate-900/90 text-white px-2.5 py-1.5 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              <button id="btnNextMonth" type="button" title="Next Month" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btnManageTrucks" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-slate-100 border border-white/15 transition">
+              <svg class="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Manage Trucks
+            </button>
+            <button id="btnExportCSV" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-slate-100 border border-white/15 transition">
+              <svg class="w-3.5 h-3.5 text-sky-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Export CSV
+            </button>
+            <button id="btnPrintPnL" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-slate-100 border border-white/15 transition">
+              <svg class="w-3.5 h-3.5 text-amber-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              Print P&amp;L
+            </button>
+            <button id="btnDownloadMonthlyPDF" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-slate-100 border border-white/15 transition">
+              <svg class="w-3.5 h-3.5 text-rose-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Monthly PDF
+            </button>
+            <button id="btnSyncModal" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-slate-100 border border-white/15 transition">
+              <span id="syncDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+              <span id="syncBtnLabel">Cloud Sync</span>
+            </button>
+            <button id="btnBackupModal" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-slate-100 border border-white/15 transition">
+              <svg class="w-3.5 h-3.5 text-indigo-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+              Backup / Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Print Header -->
+    <div class="hidden print:block border-b pb-3 mb-4">
+      <h2 class="text-xl font-bold">Monthly Truck Profit &amp; Loss Statement</h2>
+      <p id="printSubtitle" class="text-sm text-slate-600"></p>
+    </div>
+
+    <!-- KPI Cards -->
+    <section class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div class="print-card relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Gross Revenue</span>
+          <span class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+        </div>
+        <div id="kpiRevenue" class="num text-xl sm:text-3xl font-bold mt-2 text-slate-900 dark:text-white">₹0</div>
+        <div id="kpiRevenueSub" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">0 trips</div>
+      </div>
+
+      <div class="print-card relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 to-pink-500"></div>
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Expenses</span>
+          <span class="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
+          </span>
+        </div>
+        <div id="kpiExpenses" class="num text-xl sm:text-3xl font-bold mt-2 text-slate-900 dark:text-white">₹0</div>
+        <div id="kpiExpensesSub" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">Diesel: ₹0</div>
+      </div>
+
+      <div id="kpiNetCard" class="print-card relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 to-violet-500"></div>
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Net Profit</span>
+          <span id="kpiNetBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">0.0%</span>
+        </div>
+        <div id="kpiNet" class="num text-xl sm:text-3xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">₹0</div>
+        <div id="kpiNetSub" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">vs. prev month: —</div>
+      </div>
+
+      <div class="print-card relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Unit Metrics</span>
+          <span class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </span>
+        </div>
+        <div id="kpiMileage" class="num text-xl sm:text-3xl font-bold mt-2 text-slate-900 dark:text-white">0.0 km/L</div>
+        <div id="kpiUnitSub" class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">0 km • ₹0/km</div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs (Trip Log Forefront!) -->
+    <div class="no-print flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800/90 rounded-2xl w-full sm:w-fit overflow-x-auto">
+      <button data-tab="trips" class="tab-btn flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm whitespace-nowrap">Trips Log (<span id="tabTripsCount">0</span>)</button>
+      <button data-tab="overview" class="tab-btn flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap">Overview &amp; P&amp;L</button>
+      <button data-tab="expenses" class="tab-btn flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap">Expenses (<span id="tabExpCount">0</span>)</button>
+    </div>
+
+    <!-- TAB 1 (FOREFRONT): Trips Log -->
+    <section id="tab-trips" class="space-y-4">
+      <!-- Receivables Summary Strip (Click any box to filter particulars) -->
+      <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+        <button id="btnRecAll" type="button" class="text-left bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 shadow-sm hover:ring-2 hover:ring-slate-400 transition">
+          <div class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Total Billed</div>
+          <div id="recTotalBilled" class="num text-base sm:text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">₹0</div>
+          <div class="text-[10px] text-slate-400 mt-0.5 hidden sm:block">Tap to view all</div>
+        </button>
+        <button id="btnRecCollected" type="button" class="text-left bg-white dark:bg-slate-900 rounded-2xl border border-emerald-200/70 dark:border-emerald-900/50 p-3 sm:p-4 shadow-sm hover:ring-2 hover:ring-emerald-400 transition">
+          <div class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Collected</div>
+          <div id="recCollected" class="num text-base sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">₹0</div>
+          <div class="text-[10px] text-emerald-500/80 mt-0.5 hidden sm:block">Tap to view paid</div>
+        </button>
+        <button id="btnRecPending" type="button" class="text-left bg-white dark:bg-slate-900 rounded-2xl border border-rose-200/70 dark:border-rose-900/50 p-3 sm:p-4 shadow-sm hover:ring-2 hover:ring-rose-400 transition">
+          <div class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Pending Due</div>
+          <div id="recPending" class="num text-base sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">₹0</div>
+          <div class="text-[10px] text-rose-500/80 mt-0.5 hidden sm:block">Tap to view due</div>
+        </button>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold">Trips &amp; Call Log</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Tap any trip to view details, edit, download PDF, or share POD link</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input id="searchTrips" type="search" placeholder="Search ID, route, party..." class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs w-40 sm:w-48 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <select id="filterTripPayment" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold">
+              <option value="ALL">All Payments</option>
+              <option value="COLLECTED">Collected (Paid / Partial)</option>
+              <option value="PENDING">Pending Due (Unpaid / Partial)</option>
+              <option value="Paid">Paid Only</option>
+              <option value="Unpaid">Unpaid Only</option>
+              <option value="Partially Paid">Partially Paid Only</option>
+            </select>
+            <button id="btnDownloadTripLogPDF" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition">
+              Trip Log PDF
+            </button>
+            <button id="btnAddTripInline" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition">
+              + Log New Trip
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Card List (Zero Horizontal Scroll!) -->
+        <div id="tripsMobileList" class="md:hidden divide-y divide-slate-100 dark:divide-slate-800"></div>
+
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th class="py-3 px-4 font-semibold">Trip / Date</th>
+                <th class="py-3 px-4 font-semibold">Vehicle</th>
+                <th class="py-3 px-4 font-semibold">Route &amp; Material</th>
+                <th class="py-3 px-4 font-semibold text-right">Load / Dist</th>
+                <th class="py-3 px-4 font-semibold text-right">Freight (₹)</th>
+                <th class="py-3 px-4 font-semibold text-right">Costs (₹)</th>
+                <th class="py-3 px-4 font-semibold text-right">Net Profit</th>
+                <th class="py-3 px-4 font-semibold text-center">Payment</th>
+                <th class="py-3 px-4 font-semibold text-center no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tripsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Overview & P&L Statement -->
+    <section id="tab-overview" class="hidden space-y-6">
+      <!-- Per-Truck Comparison Scorecard -->
+      <div class="print-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold">Truck-by-Truck P&amp;L Comparison</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Tap any truck card to isolate its P&amp;L, or compare side-by-side</p>
+          </div>
+          <button id="btnShowAllTrucksPnL" type="button" class="px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Show All Trucks</button>
+        </div>
+        <div id="truckScorecardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="print-card lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold">6-Month P&amp;L Trend</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Revenue, Total Expenses &amp; Net Profit</p>
+            </div>
+          </div>
+          <div class="relative h-72">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="print-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="mb-4">
+            <h3 class="text-sm font-bold">Expense Mix</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Share of monthly costs by category</p>
+          </div>
+          <div class="relative h-52">
+            <canvas id="expenseChart"></canvas>
+          </div>
+          <div id="expenseLegend" class="mt-4 space-y-1.5 text-xs"></div>
+        </div>
+      </div>
+
+      <div class="print-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-800/40">
+          <div>
+            <h3 class="text-base font-bold">Monthly Profit &amp; Loss Statement</h3>
+            <p id="pnlHeaderMeta" class="text-xs text-slate-500 dark:text-slate-400"></p>
+          </div>
+          <div id="pnlStatusPill" class="px-3 py-1 rounded-full text-xs font-bold"></div>
+        </div>
+        <div id="pnlTableContainer" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm"></div>
+      </div>
+
+      <!-- Per-Truck P&L Breakdown Table -->
+      <div class="print-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+          <h3 class="text-base font-bold">Per-Truck Monthly P&amp;L Breakdown</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Separate revenue, trip costs, fixed expenses, and net profit for each vehicle</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th class="py-3 px-4 font-semibold">Truck Number</th>
+                <th class="py-3 px-4 font-semibold text-right">Trips / km</th>
+                <th class="py-3 px-4 font-semibold text-right">Revenue (₹)</th>
+                <th class="py-3 px-4 font-semibold text-right">Variable Costs (₹)</th>
+                <th class="py-3 px-4 font-semibold text-right">Fixed Costs (₹)</th>
+                <th class="py-3 px-4 font-semibold text-right">Net Profit (₹)</th>
+                <th class="py-3 px-4 font-semibold text-right">Margin</th>
+              </tr>
+            </thead>
+            <tbody id="perTruckPnLBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Expenses Log -->
+    <section id="tab-expenses" class="hidden space-y-4">
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold">Operating &amp; Fixed Expenses</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Driver salary, quarterly road tax, annual permit/insurance, tyres &amp; EMI</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="filterExpCategory" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-medium">
+              <option value="ALL">All Categories</option>
+              <option value="RoadTax">Road Tax (Quarterly)</option>
+              <option value="PermitInsurance">National Permit &amp; Insurance (Annual)</option>
+              <option value="Driver">Driver Salary (Monthly)</option>
+              <option value="EMI">Truck EMI (Monthly)</option>
+              <option value="Miscellaneous">Miscellaneous Expenses</option>
+            </select>
+            <button id="btnAddExpenseInline" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white transition">
+              + Add Expense
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <th class="py-3 px-4 font-semibold">Date</th>
+                <th class="py-3 px-4 font-semibold">Vehicle</th>
+                <th class="py-3 px-4 font-semibold">Category</th>
+                <th class="py-3 px-4 font-semibold">Notes</th>
+                <th class="py-3 px-4 font-semibold text-right">Amount (₹)</th>
+                <th class="py-3 px-4 font-semibold text-center no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: Add / Edit Trip -->
+  <div id="modalTrip" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-xl w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modalTripTitle" class="text-lg font-bold">Log New Trip</h3>
+        <button type="button" data-close="modalTrip" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <form id="formTrip" class="space-y-4">
+        <input type="hidden" id="tripId" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Date</label>
+            <input id="tripDate" type="date" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Truck Number (Required)</label>
+            <select id="tripTruck" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Origin</label>
+            <input id="tripOrigin" type="text" placeholder="e.g. Kharswan" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Destination</label>
+            <input id="tripDest" type="text" placeholder="e.g. Garhwa" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">Party / Client Name (Optional)</label>
+          <input id="tripParty" type="text" placeholder="e.g. J.H. Traders / Dalmia Cement" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Material</label>
+            <input id="tripMaterial" type="text" placeholder="Cement / Coal" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Weight (MT)</label>
+            <input id="tripWeight" type="number" step="0.1" min="0" placeholder="32" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold">Distance (km)</label>
+              <span id="tripDistStatus" class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Auto</span>
+            </div>
+            <input id="tripDistance" type="number" min="0" placeholder="Auto" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Rate (₹/MT)</label>
+            <input id="tripRate" type="number" step="0.01" min="0" placeholder="1245" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Gross Freight (₹)</label>
+            <input id="tripFreight" type="number" min="0" placeholder="48000" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Detention / Extra (₹)</label>
+            <input id="tripExtra" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <!-- Payment Status (Updated after trip completion) -->
+        <div id="tripPaymentSection" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/50">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Payment Status <span class="text-[10px] font-normal text-slate-500">(update after completion)</span></label>
+            <select id="tripPaymentStatus" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold">
+              <option value="Unpaid">Unpaid (Pending)</option>
+              <option value="Partially Paid">Partially Paid</option>
+              <option value="Paid">Paid</option>
+            </select>
+          </div>
+          <div id="tripPaidAmountWrap" class="hidden">
+            <label class="block text-xs font-semibold mb-1">Amount Received (₹)</label>
+            <input id="tripPaidAmount" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700 space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Direct Trip Costs</div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold mb-1">Fuel Expense (₹)</label>
+              <input id="tripDieselCost" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Addl. Fuel (₹)</label>
+              <input id="tripAddFuel" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Toll Charges (₹)</label>
+              <input id="tripToll" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Driver Pay (₹)</label>
+              <input id="tripBata" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Transport Chg (₹)</label>
+              <input id="tripTransport" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Transit Charge (₹)</label>
+              <input id="tripTransit" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Overload Charge (₹)</label>
+              <input id="tripOverload" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Urea Expense (₹)</label>
+              <input id="tripUrea" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Misc / Other (₹)</label>
+              <input id="tripMisc" type="number" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Diesel (L)</label>
+              <input id="tripDieselLiters" type="number" step="0.1" min="0" value="0" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close="modalTrip" class="px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Save Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Trip Details -->
+  <div id="modalTripDetails" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="tdTripId" class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 num">TRP-001</span>
+            <span id="tdDate" class="text-xs text-slate-500 dark:text-slate-400 num"></span>
+            <span id="tdPayBadge" class="px-2 py-0.5 rounded-full text-[11px] font-bold">Unpaid</span>
+          </div>
+          <h3 id="tdRoute" class="text-lg font-bold mt-1">Origin → Destination</h3>
+          <p id="tdMeta" class="text-xs text-slate-500 dark:text-slate-400"></p>
+        </div>
+        <button type="button" data-close="modalTripDetails" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+
+      <div id="tdProfitBanner" class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/60 flex items-center justify-between">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Net Trip Profit</div>
+          <div id="tdNetProfit" class="num text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">₹0</div>
+        </div>
+        <span id="tdMarginPill" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">0.0%</span>
+      </div>
+
+      <div id="tdBreakdown" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden"></div>
+
+      <div class="p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/50 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Update Payment:</span>
+        <div class="flex items-center gap-1.5">
+          <button id="btnQuickMarkPaid" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Mark Paid</button>
+          <button id="btnQuickMarkPartial" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white">Partial</button>
+          <button id="btnQuickMarkUnpaid" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white">Unpaid</button>
+        </div>
+      </div>
+
+      <!-- Enhanced Receiving / POD Section -->
+      <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-sky-50/60 dark:from-slate-800/70 dark:to-sky-950/30 border border-slate-200 dark:border-slate-700 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Receiving / POD Document</span>
+          <span id="tdPodBadge" class="px-2 py-0.5 rounded-full text-[11px] font-bold">Pending</span>
+        </div>
+        <p id="tdPodMeta" class="text-xs text-slate-500 dark:text-slate-400 hidden"></p>
+        <div class="flex flex-wrap gap-2">
+          <a id="btnViewPod" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white">View Receiving Photo</a>
+          <button id="btnCopyDriverLink" type="button" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white">Copy Driver Link</button>
+          <a id="btnWhatsappDriver" href="#" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">Send on WhatsApp</a>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between pt-2 gap-2">
+        <div class="flex items-center gap-2">
+          <button id="btnDeleteTripFromDetails" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold border border-rose-300 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40">Delete</button>
+          <button id="btnDownloadTripPDF" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white">Download PDF</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" data-close="modalTripDetails" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Close</button>
+          <button id="btnEditTripFromDetails" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Edit Trip</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit Expense -->
+  <div id="modalExpense" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modalExpenseTitle" class="text-lg font-bold">Add Expense</h3>
+        <button type="button" data-close="modalExpense" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <form id="formExpense" class="space-y-4">
+        <input type="hidden" id="expId" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Date</label>
+            <input id="expDate" type="date" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Vehicle</label>
+            <select id="expTruck" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold mb-1">Category</label>
+            <select id="expCategory" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm">
+              <option value="RoadTax">Road Tax (Quarterly)</option>
+              <option value="PermitInsurance">National Permit &amp; Insurance (Annual)</option>
+              <option value="Driver">Driver Salary (Monthly)</option>
+              <option value="EMI">Truck EMI (Monthly)</option>
+              <option value="Miscellaneous">Miscellaneous Expenses</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">Total Paid Amount (₹)</label>
+            <input id="expAmount" type="number" min="1" placeholder="15000" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">Payment Frequency (for Monthly P&amp;L)</label>
+          <select id="expFrequency" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm">
+            <option value="monthly">One-time / Monthly (100% in this month)</option>
+            <option value="quarterly">Quarterly (÷ 3 months — Road Tax)</option>
+            <option value="annual">Annual (÷ 12 months — Permit &amp; Insurance)</option>
+          </select>
+          <p id="expProratePreview" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1">Description / Notes</label>
+          <input id="expNotes" type="text" placeholder="e.g. Monthly driver salary, Road tax, Tyre replacement" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close="modalExpense" class="px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 text-white">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Manage Trucks -->
+  <div id="modalTrucks" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">Manage Fleet Trucks</h3>
+        <button type="button" data-close="modalTrucks" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <div id="trucksList" class="space-y-2 mb-5 max-h-56 overflow-y-auto"></div>
+      <form id="formTruck" class="border-t border-slate-200 dark:border-slate-800 pt-4 space-y-3">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Add New Truck</div>
+        <div class="grid grid-cols-2 gap-3">
+          <input id="newTruckReg" type="text" placeholder="Reg No (e.g. JH19G8841)" required class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm uppercase" />
+          <input id="newTruckModel" type="text" placeholder="Model (e.g. Tata 4932)" required class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm" />
+        </div>
+        <button type="submit" class="w-full py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">Add Vehicle to Fleet</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Cloud Sync (Google Sheets) -->
+  <div id="modalSync" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 shadow-2xl max-h-[92vh] overflow-y-auto space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold">Multi-User Google Sheets Sync</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Connect a Google Sheet so multiple phones share live data</p>
+        </div>
+        <button type="button" data-close="modalSync" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+
+      <div id="syncStatusBox" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs">
+        Status: <strong id="syncStatusText">Local Only (not connected)</strong>
+      </div>
+
+      <div class="space-y-2">
+        <label for="inputSyncUrl" class="block text-xs font-semibold">Google Apps Script Web App URL</label>
+        <input id="inputSyncUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-mono" />
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button id="btnSaveSyncUrl" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">Save &amp; Sync Now</button>
+          <button id="btnPushCloud" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white">Push Local Data to Sheet</button>
+          <button id="btnDisconnectSync" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold border border-rose-300 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40">Disconnect</button>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-200 dark:border-slate-800 pt-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">One-Time Setup</span>
+          <button id="btnCopyScript" type="button" class="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 hover:bg-indigo-100">Copy Apps Script</button>
+        </div>
+        <ol class="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-decimal pl-4">
+          <li>Open your <strong>Google Sheet</strong> → <strong>Extensions → Apps Script</strong>.</li>
+          <li>Clear existing code, paste the copied script, and press <strong>Ctrl + S</strong>.</li>
+          <li>Click <strong>Deploy → Manage deployments → Edit → Version: New version → Deploy</strong> (access: <strong>Anyone</strong>).</li>
+          <li>Paste the <strong>Web app URL</strong> above and click <strong>Save &amp; Sync Now</strong>.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Backup & Reset -->
+  <div id="modalBackup" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">Data Backup &amp; Reset</h3>
+        <button type="button" data-close="modalBackup" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Your data is saved automatically in your browser. Export a JSON backup anytime or import a previous backup.</p>
+      <div class="grid grid-cols-1 gap-2.5">
+        <button id="btnExportJSON" type="button" class="w-full py-2.5 px-4 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800">Download JSON Backup</button>
+        <label class="w-full py-2.5 px-4 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800">
+          Restore from JSON Backup
+          <input id="inputImportJSON" type="file" accept=".json" class="hidden" />
+        </label>
+        <button id="btnResetSample" type="button" class="w-full py-2.5 px-4 rounded-xl text-sm font-semibold border border-amber-300 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40">Reset to Sample Data</button>
+        <button id="btnClearAll" type="button" class="w-full py-2.5 px-4 rounded-xl text-sm font-semibold border border-rose-300 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40">Clear All Entries (Start Fresh)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRIVER UPLOAD VIEW (Opened when ?upload=TRP-xxx is in URL) -->
+  <div id="driverUploadView" class="fixed inset-0 z-50 hidden bg-slate-950 text-white overflow-y-auto p-4 sm:p-6">
+    <div class="max-w-md mx-auto my-6 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold">Upload Unloading Receiving</h2>
+          <p class="text-xs text-slate-400">FleetLedger Driver Proof of Delivery (POD)</p>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/70 space-y-1">
+        <div class="flex items-center justify-between">
+          <span id="drvTripId" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 num">TRP-001</span>
+          <span id="drvTruck" class="text-xs font-bold text-slate-200"></span>
+        </div>
+        <div id="drvRoute" class="text-base font-bold text-white pt-1"></div>
+      </div>
+
+      <label class="block cursor-pointer">
+        <div class="border-2 border-dashed border-emerald-500/50 hover:border-emerald-400 rounded-2xl p-6 text-center bg-emerald-950/20 transition space-y-2">
+          <svg class="w-10 h-10 mx-auto text-emerald-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <div class="text-sm font-semibold text-emerald-300">Tap to Take Photo or Choose from Gallery</div>
+          <div class="text-xs text-slate-400">Clear photo of signed receiving / unloaded goods</div>
+        </div>
+        <input id="drvFileInput" type="file" accept="image/*" class="hidden" />
+      </label>
+
+      <div id="drvPreviewWrap" class="hidden space-y-2">
+        <img id="drvPreviewImg" alt="Receiving preview" class="w-full max-h-64 object-contain rounded-2xl border border-slate-700 bg-black" />
+        <p id="drvFileInfo" class="text-xs text-slate-400 text-center"></p>
+      </div>
+
+      <div>
+        <label for="drvRemarks" class="block text-xs font-semibold text-slate-300 mb-1">Driver Remarks (Optional)</label>
+        <input id="drvRemarks" type="text" placeholder="e.g. Unloaded cleanly at site, no shortage" class="w-full rounded-xl border border-slate-700 bg-slate-800 text-white px-3 py-2 text-sm" />
+      </div>
+
+      <button id="btnDrvSubmit" type="button" disabled class="w-full py-3 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition">Upload Receiving Photo</button>
+      <p id="drvStatusMsg" class="text-xs text-center text-slate-300"></p>
+    </div>
+  </div>
+
+  <!-- MODAL: 24-Hour Unpaid Trip Payment Reminder -->
+  <div id="modalPaymentReminder" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-amber-300/70 dark:border-amber-700/60 max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+          <div>
+            <h3 class="text-base font-bold">Payment Pending (&gt;24 hrs)</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">These trips were logged over 24 hours ago and are not marked Paid</p>
+          </div>
+        </div>
+        <button type="button" data-close="modalPaymentReminder" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <div id="reminderTripsList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      <div class="flex justify-end">
+        <button type="button" data-close="modalPaymentReminder" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 dark:bg-slate-700 text-white">Dismiss for Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Quick Guide -->
+  <div id="modalHelp" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">FleetLedger Quick Guide</h3>
+        <button type="button" data-close="modalHelp" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">1. Logging &amp; Editing Trips</div>
+          Tap <strong>+ Add Trip</strong>, choose your <strong>Truck Number</strong>, enter Origin &amp; Destination (distance auto-calculates), Weight &amp; Rate (freight auto-calculates), and direct trip costs. Tap any trip card anytime to view details, mark payment, or download its PDF voucher.
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">2. Payment Status &amp; 24-Hr Reminder</div>
+          New trips start as <strong>Unpaid</strong>. After delivery, open the trip and tap <strong>Mark Paid</strong> or <strong>Partial</strong>. Any trip not marked Paid after 24 hours triggers a reminder popup when you open the app.
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">3. Quarterly &amp; Annual Expenses</div>
+          <strong>Road Tax (Quarterly)</strong> automatically splits across 3 months (÷ 3), and <strong>National Permit &amp; Insurance (Annual)</strong> splits across 12 months (÷ 12) so one payment never distorts a single month's P&amp;L.
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">4. Driver POD Upload &amp; Cloud Sync</div>
+          Open any trip → <strong>Send on WhatsApp</strong> to forward the upload link to your driver. Photos save permanently to <strong>FleetLedger Receiving Photos</strong> in Google Drive and appear in your Google Sheet's Column V.
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button" data-close="modalHelp" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 dark:bg-emerald-600 text-white">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white text-xs font-semibold shadow-lg transition-all"></div>
+
+  <script>
+    const STORAGE_KEY = 'fleetledger_v1_data';
+    const THEME_KEY = 'fleetledger_theme';
+    const SYNC_URL_KEY = 'fleetledger_sync_url';
+
+    const APPS_SCRIPT_CODE = `function getTrackerSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tripLog = ss.getSheetByName('Trip Log');
+  let expSheet = ss.getSheetByName('Expenses');
+  if (!expSheet) {
+    expSheet = ss.insertSheet('Expenses');
+    expSheet.appendRow(['id', 'date', 'truckReg', 'category', 'notes', 'amount', 'frequency']);
+  }
+  return { ss, tripLog, expSheet };
+}
+
+function fmtDate_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return String(v || '').slice(0, 10);
+}
+
+function num_(v) {
+  if (typeof v === 'number') return v;
+  return Number(String(v || '0').replace(/[^0-9.-]/g, '')) || 0;
+}
+
+function doGet() {
+  const { tripLog, expSheet } = getTrackerSheets_();
+  const trips = [];
+  const truckSet = {};
+  if (tripLog) {
+    const vals = tripLog.getDataRange().getValues();
+    for (let i = 1; i < vals.length; i++) {
+      const r = vals[i];
+      if (!r[0] && !r[2]) continue;
+      const reg = String(r[2] || '').trim().toUpperCase();
+      if (reg) truckSet[reg] = true;
+      trips.push({
+        id: String(r[0] || ('TRP-' + i)),
+        date: fmtDate_(r[1]),
+        truckReg: reg,
+        origin: String(r[3] || ''),
+        dest: String(r[4] || ''),
+        material: String(r[5] || ''),
+        weight: num_(r[6]),
+        rate: num_(r[7]),
+        freight: num_(r[8]),
+        transportRate: num_(r[9]),
+        transportCost: num_(r[10]),
+        dieselCost: num_(r[11]),
+        toll: num_(r[12]),
+        bata: num_(r[13]),
+        addFuelCost: num_(r[14]),
+        ureaCost: num_(r[15]),
+        miscCost: num_(r[16]) + num_(r[17]),
+        podUrl: String(r[21] || ''),
+        transitCost: num_(r[22]),
+        overloadCost: num_(r[23]),
+        paymentStatus: String(r[24] || 'Unpaid'),
+        paidAmount: num_(r[25]),
+        distance: num_(r[26]),
+        podMeta: String(r[27] || ''),
+        party: String(r[28] || ''),
+        dieselLiters: num_(r[29]),
+        extra: 0
+      });
+    }
+  }
+  const expenses = [];
+  const ev = expSheet.getDataRange().getValues();
+  for (let i = 1; i < ev.length; i++) {
+    const r = ev[i];
+    if (!r[0]) continue;
+    const reg = String(r[2] || '').trim().toUpperCase();
+    if (reg) truckSet[reg] = true;
+    expenses.push({
+      id: String(r[0]),
+      date: fmtDate_(r[1]),
+      truckReg: reg,
+      category: String(r[3] || 'Miscellaneous'),
+      notes: String(r[4] || ''),
+      amount: num_(r[5]),
+      frequency: String(r[6] || 'monthly')
+    });
+  }
+  const trucks = Object.keys(truckSet).map(reg => ({ id: reg, reg, model: 'Fleet Truck' }));
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, trucks, trips, expenses })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function writeTripRow_(tripLog, rowNum, tripId, p) {
+  const tRate = p.weight > 0 ? (p.transportCost || 0) / p.weight : 0;
+  tripLog.getRange(rowNum, 1, 1, 18).setValues([[
+    tripId, p.date, p.truckReg || p.truckId, p.origin, p.dest, p.material,
+    p.weight || 0, p.rate || 0, p.freight || 0, tRate, p.transportCost || 0,
+    p.dieselCost || 0, p.toll || 0, p.bata || 0, p.addFuelCost || 0,
+    p.ureaCost || 0, p.miscCost || 0, 0
+  ]]);
+  tripLog.getRange(rowNum, 23, 1, 5).setValues([[
+    p.transitCost || 0, p.overloadCost || 0, p.paymentStatus || 'Unpaid', p.paidAmount || 0, p.distance || 0
+  ]]);
+  tripLog.getRange(rowNum, 29, 1, 2).setValues([[
+    p.party || '', p.dieselLiters || 0
+  ]]);
+  tripLog.getRange(rowNum, 9).setFormula('=G' + rowNum + '*H' + rowNum);
+  tripLog.getRange(rowNum, 19).setFormula('=SUM(K' + rowNum + ':R' + rowNum + ')+SUM(W' + rowNum + ':X' + rowNum + ')');
+  tripLog.getRange(rowNum, 20).setFormula('=I' + rowNum + '-S' + rowNum);
+  tripLog.getRange(rowNum, 21).setFormula('=IF(I' + rowNum + '>0, T' + rowNum + '/I' + rowNum + ', 0)');
+}
+
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const { tripLog, expSheet } = getTrackerSheets_();
+    if (body.action === 'addTrip' && tripLog) {
+      const p = body.payload;
+      const vals = tripLog.getRange('A:A').getValues();
+      let nextRow = 2;
+      for (let i = 1; i < vals.length; i++) {
+        if (String(vals[i][0]).trim() !== '') nextRow = i + 2;
+      }
+      const tripId = p.id && String(p.id).startsWith('TRP-') ? p.id : ('TRP-' + String(nextRow - 1).padStart(3, '0'));
+      writeTripRow_(tripLog, nextRow, tripId, p);
+    } else if (body.action === 'updateTrip' && tripLog) {
+      const p = body.payload;
+      const vals = tripLog.getRange('A:A').getValues();
+      let targetRow = -1;
+      for (let i = 1; i < vals.length; i++) {
+        if (String(vals[i][0]) === String(p.id)) { targetRow = i + 1; break; }
+      }
+      if (targetRow > 0) writeTripRow_(tripLog, targetRow, p.id, p);
+    } else if (body.action === 'deleteTrip' && tripLog) {
+      const vals = tripLog.getRange('A:A').getValues();
+      for (let i = vals.length - 1; i >= 1; i--) {
+        if (String(vals[i][0]) === String(body.id)) tripLog.deleteRow(i + 1);
+      }
+    } else if (body.action === 'addExpense') {
+      const p = body.payload;
+      expSheet.appendRow([p.id, p.date, p.truckReg || p.truckId, p.category, p.notes, p.amount || 0, p.frequency || 'monthly']);
+    } else if (body.action === 'deleteExpense') {
+      const vals = expSheet.getRange('A:A').getValues();
+      for (let i = vals.length - 1; i >= 1; i--) {
+        if (String(vals[i][0]) === String(body.id)) expSheet.deleteRow(i + 1);
+      }
+    } else if (body.action === 'uploadPod' && tripLog) {
+      const folders = DriveApp.getFoldersByName('FleetLedger Receiving Photos');
+      const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder('FleetLedger Receiving Photos');
+      const bytes = Utilities.base64Decode(body.base64);
+      const blob = Utilities.newBlob(bytes, body.mimeType || 'image/jpeg', body.filename || (body.tripId + '_receiving.jpg'));
+      const file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      const fileUrl = file.getUrl();
+      if (String(tripLog.getRange(1, 22).getValue() || '').trim() === '') tripLog.getRange(1, 22).setValue('Receiving / POD');
+      const vals = tripLog.getRange('A:A').getValues();
+      for (let i = 1; i < vals.length; i++) {
+        if (String(vals[i][0]) === String(body.tripId)) {
+          tripLog.getRange(i + 1, 22).setValue(fileUrl);
+          if (body.remarks) tripLog.getRange(i + 1, 28).setValue(body.remarks);
+          break;
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ ok: true, url: fileUrl })).setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}`;
+
+    const DEFAULT_DATA = {
+      trucks: [
+        { id: 'JH19G7962', reg: 'JH19G7962', model: 'Tata LPT 4932 BSVI (10x2)' },
+        { id: 'CG15EM7963', reg: 'CG15EM7963', model: 'Fleet Truck' }
+      ],
+      trips: [
+        { id: 'TRP-002', date: '2026-11-10', truckId: 'JH19G7962', truckReg: 'JH19G7962', origin: 'Kharswan', dest: 'Kharundih', material: 'Cement', weight: 50, rate: 1245, distance: 310, freight: 62250, extra: 0, dieselCost: 20000, addFuelCost: 0, toll: 2200, bata: 4000, transportCost: 1250, transitCost: 0, overloadCost: 0, ureaCost: 1000, miscCost: 1000, dieselLiters: 210, paymentStatus: 'Paid', paidAmount: 62250 }
+      ],
+      expenses: [
+        { id: 'ex1', date: '2026-11-01', truckId: 'JH19G7962', truckReg: 'JH19G7962', category: 'EMI', notes: 'Monthly Truck Loan EMI', amount: 46500, frequency: 'monthly' }
+      ]
+    };
+
+    let state = {
+      data: loadData(),
+      syncUrl: loadSyncUrl(),
+      syncStatus: 'local',
+      selectedTruck: 'ALL',
+      selectedMonth: '2026-11',
+      activeTab: 'trips',
+      expFilter: 'ALL',
+      tripPayFilter: 'ALL',
+      tripSearch: ''
+    };
+
+    let trendChartInstance = null;
+    let expenseChartInstance = null;
+
+    function loadSyncUrl() {
+      try { return localStorage.getItem(SYNC_URL_KEY) || ''; } catch (e) { return ''; }
+    }
+
+    function setSyncUI(status, msg) {
+      state.syncStatus = status;
+      const dot = document.getElementById('syncDot');
+      const lbl = document.getElementById('syncBtnLabel');
+      const txt = document.getElementById('syncStatusText');
+      if (!dot || !lbl || !txt) return;
+      if (status === 'synced') {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        lbl.textContent = 'Synced';
+        txt.textContent = msg || 'Connected & Synced';
+      } else if (status === 'syncing') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        lbl.textContent = 'Syncing...';
+        txt.textContent = msg || 'Syncing with Google Sheet...';
+      } else if (status === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+        lbl.textContent = 'Sync Error';
+        txt.textContent = msg || 'Could not reach Google Sheet';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+        lbl.textContent = 'Cloud Sync';
+        txt.textContent = msg || 'Local Only (not connected)';
+      }
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.trucks) && Array.isArray(parsed.trips) && Array.isArray(parsed.expenses)) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+
+    function saveData() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data)); } catch (e) {}
+    }
+
+    function fmtINR(num) {
+      const n = Number(num) || 0;
+      const abs = Math.abs(Math.round(n));
+      const formatted = abs.toLocaleString('en-IN');
+      return n < 0 ? `-₹${formatted}` : `₹${formatted}`;
+    }
+
+    function fmtMonthLabel(ym) {
+      const [y, m] = ym.split('-').map(Number);
+      const d = new Date(y, m - 1, 1);
+      return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+    }
+
+    function shiftMonth(ym, delta) {
+      const [y, m] = ym.split('-').map(Number);
+      const d = new Date(y, m - 1 + delta, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
+    }
+
+    function monthDiff(startYm, targetYm) {
+      const [sy, sm] = startYm.split('-').map(Number);
+      const [ty, tm] = targetYm.split('-').map(Number);
+      return (ty - sy) * 12 + (tm - sm);
+    }
+
+    function getExpenseShareForMonth(e, ym) {
+      const eYm = String(e.date || '').slice(0, 7);
+      if (!eYm) return 0;
+      const freq = e.frequency || (e.category === 'RoadTax' ? 'quarterly' : (e.category === 'PermitInsurance' ? 'annual' : 'monthly'));
+      const diff = monthDiff(eYm, ym);
+      const amt = Number(e.amount) || 0;
+      if (freq === 'quarterly') return (diff >= 0 && diff < 3) ? Math.round(amt / 3) : 0;
+      if (freq === 'annual') return (diff >= 0 && diff < 12) ? Math.round(amt / 12) : 0;
+      return diff === 0 ? amt : 0;
+    }
+
+    function getTripCost(t) {
+      return (Number(t.dieselCost) || 0) + (Number(t.addFuelCost) || 0) + (Number(t.ureaCost) || 0) +
+        (Number(t.transportCost) || 0) + (Number(t.transitCost) || 0) + (Number(t.overloadCost) || 0) +
+        (Number(t.miscCost) || 0) + (Number(t.toll) || 0) + (Number(t.bata) || 0);
+    }
+
+    function computeMonthMetrics(ym, truckId) {
+      const trips = state.data.trips.filter(t => t.date.startsWith(ym) && (truckId === 'ALL' || t.truckId === truckId || t.truckReg === truckId));
+      const exps = state.data.expenses
+        .filter(e => (truckId === 'ALL' || e.truckId === truckId || e.truckReg === truckId))
+        .map(e => ({ ...e, monthlyShare: getExpenseShareForMonth(e, ym) }))
+        .filter(e => e.monthlyShare > 0);
+
+      let freightIncome = 0, extraIncome = 0, tripDiesel = 0, tripAddFuel = 0, tripUrea = 0;
+      let tripToll = 0, tripTransport = 0, tripTransit = 0, tripOverload = 0, tripBata = 0, tripMisc = 0;
+      let totalKm = 0, totalLiters = 0;
+
+      trips.forEach(t => {
+        freightIncome += Number(t.freight) || 0;
+        extraIncome += Number(t.extra) || 0;
+        tripDiesel += Number(t.dieselCost) || 0;
+        tripAddFuel += Number(t.addFuelCost) || 0;
+        tripUrea += Number(t.ureaCost) || 0;
+        tripToll += Number(t.toll) || 0;
+        tripTransport += Number(t.transportCost) || 0;
+        tripTransit += Number(t.transitCost) || 0;
+        tripOverload += Number(t.overloadCost) || 0;
+        tripBata += Number(t.bata) || 0;
+        tripMisc += Number(t.miscCost) || 0;
+        totalKm += Number(t.distance) || 0;
+        totalLiters += Number(t.dieselLiters) || 0;
+      });
+
+      const catTotals = {
+        Diesel: tripDiesel, AdditionalFuel: tripAddFuel, Urea: tripUrea, Driver: tripBata,
+        Toll: tripToll, Transportation: tripTransport, Transit: tripTransit, Overload: tripOverload,
+        Maintenance: 0, RoadTax: 0, PermitInsurance: 0, TaxPermit: 0, EMI: 0, Miscellaneous: tripMisc
+      };
+
+      exps.forEach(e => {
+        const amt = Number(e.monthlyShare) || 0;
+        if (catTotals.hasOwnProperty(e.category)) catTotals[e.category] += amt;
+        else catTotals.Miscellaneous += amt;
+      });
+
+      const totalRevenue = freightIncome + extraIncome;
+      const variableCosts = catTotals.Diesel + catTotals.AdditionalFuel + catTotals.Urea + catTotals.Driver +
+        catTotals.Toll + catTotals.Transportation + catTotals.Transit + catTotals.Overload + catTotals.Maintenance + catTotals.Miscellaneous;
+      const fixedCosts = catTotals.RoadTax + catTotals.PermitInsurance + catTotals.TaxPermit + catTotals.EMI;
+      const totalExpenses = variableCosts + fixedCosts;
+      const grossProfit = totalRevenue - variableCosts;
+      const netProfit = totalRevenue - totalExpenses;
+      const marginPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+      const mileage = totalLiters > 0 ? totalKm / totalLiters : 0;
+      const costPerKm = totalKm > 0 ? totalExpenses / totalKm : 0;
+
+      return { trips, exps, freightIncome, extraIncome, totalRevenue, catTotals, variableCosts, fixedCosts, totalExpenses, grossProfit, netProfit, marginPct, totalKm, totalLiters, mileage, costPerKm };
+    }
+
+    function populateSelectors() {
+      const selTruck = document.getElementById('selectTruck');
+      selTruck.innerHTML = `<option value="ALL">All Trucks (${state.data.trucks.length})</option>` +
+        state.data.trucks.map(t => `<option value="${t.id}">${t.reg} — ${t.model}</option>`).join('');
+      selTruck.value = state.selectedTruck;
+
+      // Never wipe open modal truck selection during background sync!
+      const isTripOpen = !document.getElementById('modalTrip').classList.contains('hidden');
+      const isExpOpen = !document.getElementById('modalExpense').classList.contains('hidden');
+
+      if (!isTripOpen) {
+        const tripTruck = document.getElementById('tripTruck');
+        const prev = tripTruck.value;
+        tripTruck.innerHTML = `<option value="" disabled selected>-- Choose Truck Number --</option>` +
+          state.data.trucks.map(t => `<option value="${t.id}">${t.reg} (${t.model})</option>`).join('');
+        if (prev && state.data.trucks.some(t => t.id === prev)) tripTruck.value = prev;
+      }
+      if (!isExpOpen) {
+        const expTruck = document.getElementById('expTruck');
+        const prev = expTruck.value;
+        expTruck.innerHTML = state.data.trucks.map(t => `<option value="${t.id}">${t.reg} (${t.model})</option>`).join('');
+        if (prev && state.data.trucks.some(t => t.id === prev)) expTruck.value = prev;
+      }
+
+      document.getElementById('inputMonth').value = state.selectedMonth;
+    }
+
+    function renderKPIs(curr, prev) {
+      document.getElementById('kpiRevenue').textContent = fmtINR(curr.totalRevenue);
+      document.getElementById('kpiRevenueSub').textContent = `${curr.trips.length} trip${curr.trips.length === 1 ? '' : 's'} • ${curr.totalKm.toLocaleString('en-IN')} km`;
+
+      document.getElementById('kpiExpenses').textContent = fmtINR(curr.totalExpenses);
+      const dieselPct = curr.totalRevenue > 0 ? ((curr.catTotals.Diesel / curr.totalRevenue) * 100).toFixed(1) : '0.0';
+      document.getElementById('kpiExpensesSub').textContent = `Diesel: ${fmtINR(curr.catTotals.Diesel)} (${dieselPct}%)`;
+
+      const netEl = document.getElementById('kpiNet');
+      const badgeEl = document.getElementById('kpiNetBadge');
+      netEl.textContent = fmtINR(curr.netProfit);
+      badgeEl.textContent = `${curr.marginPct.toFixed(1)}%`;
+
+      if (curr.netProfit >= 0) {
+        netEl.className = 'num text-xl sm:text-3xl font-bold mt-2 text-emerald-600 dark:text-emerald-400';
+        badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+      } else {
+        netEl.className = 'num text-xl sm:text-3xl font-bold mt-2 text-rose-600 dark:text-rose-400';
+        badgeEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+      }
+
+      const diff = curr.netProfit - prev.netProfit;
+      document.getElementById('kpiNetSub').textContent = `vs. ${fmtMonthLabel(shiftMonth(state.selectedMonth, -1))}: ${diff >= 0 ? '+' : ''}${fmtINR(diff)}`;
+
+      document.getElementById('kpiMileage').textContent = `${curr.mileage.toFixed(2)} km/L`;
+      document.getElementById('kpiUnitSub').textContent = `Cost/km: ${fmtINR(curr.costPerKm)} • ${curr.totalLiters.toFixed(0)} L`;
+
+      const truckLabel = state.selectedTruck === 'ALL'
+        ? `All Fleet Vehicles (${state.data.trucks.length})`
+        : (state.data.trucks.find(t => t.id === state.selectedTruck)?.reg || 'Vehicle');
+      document.getElementById('heroPeriodLabel').textContent = `${truckLabel} • ${fmtMonthLabel(state.selectedMonth)}`;
+      const heroNet = document.getElementById('heroNetValue');
+      const heroPill = document.getElementById('heroMarginPill');
+      heroNet.textContent = fmtINR(curr.netProfit);
+      heroPill.textContent = `${curr.marginPct.toFixed(1)}% margin`;
+      if (curr.netProfit >= 0) {
+        heroNet.className = 'num text-3xl sm:text-4xl font-extrabold tracking-tight text-emerald-400';
+        heroPill.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+      } else {
+        heroNet.className = 'num text-3xl sm:text-4xl font-extrabold tracking-tight text-rose-400';
+        heroPill.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-400/30';
+      }
+      const expRatio = curr.totalRevenue > 0 ? Math.min(100, Math.round((curr.totalExpenses / curr.totalRevenue) * 100)) : (curr.totalExpenses > 0 ? 100 : 0);
+      document.getElementById('heroRatioText').textContent = `${expRatio}% of revenue spent`;
+      const bar = document.getElementById('heroRatioBar');
+      bar.style.width = `${expRatio}%`;
+      bar.className = expRatio <= 80
+        ? 'h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-500'
+        : expRatio <= 100
+          ? 'h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500'
+          : 'h-full rounded-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-500';
+    }
+
+    function renderPnLStatement(curr) {
+      const truckLabel = state.selectedTruck === 'ALL'
+        ? 'All Fleet Vehicles'
+        : (state.data.trucks.find(t => t.id === state.selectedTruck)?.reg || 'Vehicle');
+      const monthLabel = fmtMonthLabel(state.selectedMonth);
+      document.getElementById('pnlHeaderMeta').textContent = `${truckLabel} • Period: ${monthLabel}`;
+      document.getElementById('printSubtitle').textContent = `${truckLabel} | Period: ${monthLabel}`;
+
+      const pill = document.getElementById('pnlStatusPill');
+      if (curr.netProfit >= 0) {
+        pill.textContent = `NET PROFIT: ${fmtINR(curr.netProfit)}`;
+        pill.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+      } else {
+        pill.textContent = `NET LOSS: ${fmtINR(curr.netProfit)}`;
+        pill.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+      }
+
+      const row = (label, amt, opts = {}) => {
+        const cls = opts.bold ? 'font-bold bg-slate-50/80 dark:bg-slate-800/40' : '';
+        const amtCls = opts.color || (opts.bold ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300');
+        const indent = opts.indent ? 'pl-10' : 'pl-6';
+        return `<div class="flex items-center justify-between py-3 pr-6 ${indent} ${cls}"><span class="${opts.bold ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}">${label}</span><span class="num ${amtCls}">${fmtINR(amt)}</span></div>`;
+      };
+
+      const netColor = curr.netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400 text-base' : 'text-rose-600 dark:text-rose-400 text-base';
+      document.getElementById('pnlTableContainer').innerHTML = [
+        `<div class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20">Operating Revenue</div>`,
+        row('Freight Revenue (Trips)', curr.freightIncome, { indent: true }),
+        row('Detention & Extra Charges', curr.extraIncome, { indent: true }),
+        row('Total Gross Revenue (A)', curr.totalRevenue, { bold: true }),
+
+        `<div class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50/40 dark:bg-rose-950/20">Variable Operating Costs</div>`,
+        row('Diesel & Fuel', curr.catTotals.Diesel, { indent: true }),
+        row('Additional Fuel Expense', curr.catTotals.AdditionalFuel, { indent: true }),
+        row('Urea (AdBlue) Expense', curr.catTotals.Urea, { indent: true }),
+        row('Driver Expense (Salary, Bata & Unloading)', curr.catTotals.Driver, { indent: true }),
+        row('Toll Expense & FASTag Charges', curr.catTotals.Toll, { indent: true }),
+        row('Transportation Charges', curr.catTotals.Transportation, { indent: true }),
+        row('Transit Charges', curr.catTotals.Transit, { indent: true }),
+        row('Overload Charges', curr.catTotals.Overload, { indent: true }),
+        row('Repairs, Maintenance & Tyres', curr.catTotals.Maintenance, { indent: true }),
+        row('Miscellaneous Expenses', curr.catTotals.Miscellaneous, { indent: true }),
+        row('Total Variable Costs (B)', curr.variableCosts, { bold: true }),
+
+        row('Gross Operating Profit / EBITDA (A - B)', curr.grossProfit, { bold: true, color: curr.grossProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }),
+
+        `<div class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/20">Fixed &amp; Statutory Costs</div>`,
+        row('Road Tax (Quarterly Prorated)', curr.catTotals.RoadTax, { indent: true }),
+        row('National Permit & Insurance (Annual Prorated)', curr.catTotals.PermitInsurance + curr.catTotals.TaxPermit, { indent: true }),
+        row('Truck Loan EMI / Finance', curr.catTotals.EMI, { indent: true }),
+        row('Total Fixed Costs (C)', curr.fixedCosts, { bold: true }),
+
+        row('Net Monthly Profit / (Loss) (A - B - C)', curr.netProfit, { bold: true, color: netColor })
+      ].join('');
+    }
+
+    function renderCharts(curr) {
+      const isDark = document.documentElement.classList.contains('dark');
+      const gridColor = isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.2)';
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+
+      const months = [];
+      for (let i = 5; i >= 0; i--) months.push(shiftMonth(state.selectedMonth, -i));
+      const labels = months.map(fmtMonthLabel);
+      const revSeries = [], expSeries = [], netSeries = [];
+      months.forEach(m => {
+        const res = computeMonthMetrics(m, state.selectedTruck);
+        revSeries.push(res.totalRevenue);
+        expSeries.push(res.totalExpenses);
+        netSeries.push(res.netProfit);
+      });
+
+      if (trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(document.getElementById('trendChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Revenue', data: revSeries, backgroundColor: '#10b981', borderRadius: 6, order: 2 },
+            { label: 'Expenses', data: expSeries, backgroundColor: '#f43f5e', borderRadius: 6, order: 3 },
+            { label: 'Net Profit', data: netSeries, type: 'line', borderColor: '#6366f1', backgroundColor: '#6366f1', borderWidth: 2.5, tension: 0.35, pointRadius: 4, order: 1 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtINR(ctx.raw)}` } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: textColor } },
+            y: { grid: { color: gridColor }, ticks: { color: textColor, callback: (val) => '₹' + (val / 1000).toFixed(0) + 'k' } }
+          }
+        }
+      });
+
+      const expEntries = [
+        { label: 'Diesel & Fuel', val: curr.catTotals.Diesel, color: '#f59e0b' },
+        { label: 'Additional Fuel', val: curr.catTotals.AdditionalFuel, color: '#fb923c' },
+        { label: 'Urea (AdBlue)', val: curr.catTotals.Urea, color: '#3b82f6' },
+        { label: 'Truck EMI', val: curr.catTotals.EMI, color: '#6366f1' },
+        { label: 'Driver Expense', val: curr.catTotals.Driver, color: '#06b6d4' },
+        { label: 'Maintenance', val: curr.catTotals.Maintenance, color: '#ec4899' },
+        { label: 'Toll Expense', val: curr.catTotals.Toll, color: '#8b5cf6' },
+        { label: 'Transportation', val: curr.catTotals.Transportation, color: '#0ea5e9' },
+        { label: 'Transit Charge', val: curr.catTotals.Transit, color: '#a855f7' },
+        { label: 'Overload Charge', val: curr.catTotals.Overload, color: '#ef4444' },
+        { label: 'Road Tax (Qtr)', val: curr.catTotals.RoadTax, color: '#14b8a6' },
+        { label: 'Permit & Ins (Yr)', val: curr.catTotals.PermitInsurance + curr.catTotals.TaxPermit, color: '#0d9488' },
+        { label: 'Miscellaneous', val: curr.catTotals.Miscellaneous, color: '#64748b' }
+      ].filter(x => x.val > 0);
+
+      if (expenseChartInstance) expenseChartInstance.destroy();
+      expenseChartInstance = new Chart(document.getElementById('expenseChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: expEntries.length ? expEntries.map(e => e.label) : ['No Expenses'],
+          datasets: [{ data: expEntries.length ? expEntries.map(e => e.val) : [1], backgroundColor: expEntries.length ? expEntries.map(e => e.color) : ['#cbd5e1'], borderWidth: 0 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => expEntries.length ? `${ctx.label}: ${fmtINR(ctx.raw)}` : 'No expenses recorded' } }
+          }
+        }
+      });
+
+      const legendEl = document.getElementById('expenseLegend');
+      if (!expEntries.length) {
+        legendEl.innerHTML = `<div class="text-slate-400 text-center py-2">No expenses for this period</div>`;
+      } else {
+        legendEl.innerHTML = expEntries.map(e => {
+          const pct = curr.totalExpenses > 0 ? ((e.val / curr.totalExpenses) * 100).toFixed(1) : '0.0';
+          return `<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${e.color}"></span><span class="text-slate-600 dark:text-slate-300">${e.label}</span></div><div class="num text-slate-800 dark:text-slate-200 font-semibold">${fmtINR(e.val)} <span class="text-slate-400 font-normal">(${pct}%)</span></div></div>`;
+        }).join('');
+      }
+    }
+
+    function getPaymentBadgeHTML(status, paidAmt, totalRev) {
+      const s = status || 'Unpaid';
+      if (s === 'Paid') return `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">Paid</span>`;
+      if (s === 'Partially Paid') return `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">Partial (${fmtINR(paidAmt || 0)})</span>`;
+      return `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">Unpaid</span>`;
+    }
+
+    function renderTruckScorecard() {
+      const grid = document.getElementById('truckScorecardGrid');
+      const tbody = document.getElementById('perTruckPnLBody');
+      if (!grid) return;
+      const cardThemes = [
+        'border-t-4 border-t-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/15',
+        'border-t-4 border-t-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/15',
+        'border-t-4 border-t-amber-500 bg-amber-50/30 dark:bg-amber-950/15',
+        'border-t-4 border-t-sky-500 bg-sky-50/30 dark:bg-sky-950/15'
+      ];
+      grid.innerHTML = state.data.trucks.map((tr, i) => {
+        const m = computeMonthMetrics(state.selectedMonth, tr.id);
+        const profitCls = m.netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+        const isSel = state.selectedTruck === tr.id;
+        return `
+          <button type="button" data-select-truck-card="${tr.id}" class="text-left p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 ${cardThemes[i % cardThemes.length]} ${isSel ? 'ring-2 ring-emerald-500 shadow-md' : 'hover:shadow-md'} space-y-2 transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-extrabold text-sm text-slate-900 dark:text-white">${tr.reg}</div>
+                <div class="text-[11px] text-slate-500">${tr.model} • ${m.trips.length} trips • ${m.totalKm.toLocaleString('en-IN')} km</div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${m.netProfit >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'}">${m.marginPct.toFixed(1)}%</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs pt-1">
+              <div><div class="text-[10px] text-slate-400 uppercase">Revenue</div><div class="num font-semibold">${fmtINR(m.totalRevenue)}</div></div>
+              <div><div class="text-[10px] text-slate-400 uppercase">Total Exp</div><div class="num font-semibold text-rose-600 dark:text-rose-400">${fmtINR(m.totalExpenses)}</div></div>
+              <div class="text-right"><div class="text-[10px] text-slate-400 uppercase">Net Profit</div><div class="num font-extrabold ${profitCls}">${fmtINR(m.netProfit)}</div></div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      if (tbody) {
+        tbody.innerHTML = state.data.trucks.map(tr => {
+          const m = computeMonthMetrics(state.selectedMonth, tr.id);
+          const pCls = m.netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+          return `
+            <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+              <td class="py-3 px-4"><div class="font-bold">${tr.reg}</div><div class="text-[11px] text-slate-400">${tr.model}</div></td>
+              <td class="py-3 px-4 text-right num text-xs">${m.trips.length} • ${m.totalKm.toLocaleString('en-IN')} km</td>
+              <td class="py-3 px-4 text-right num font-semibold">${fmtINR(m.totalRevenue)}</td>
+              <td class="py-3 px-4 text-right num text-rose-600 dark:text-rose-400">${fmtINR(m.variableCosts)}</td>
+              <td class="py-3 px-4 text-right num text-amber-600 dark:text-amber-400">${fmtINR(m.fixedCosts)}</td>
+              <td class="py-3 px-4 text-right num font-extrabold ${pCls}">${fmtINR(m.netProfit)}</td>
+              <td class="py-3 px-4 text-right num text-xs font-bold">${m.marginPct.toFixed(1)}%</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderTripsTable(curr) {
+      document.getElementById('tabTripsCount').textContent = curr.trips.length;
+      // Receivables Strip
+      let billed = 0, collected = 0;
+      curr.trips.forEach(t => {
+        const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        billed += rev;
+        if ((t.paymentStatus || 'Unpaid') === 'Paid') collected += rev;
+        else if (t.paymentStatus === 'Partially Paid') collected += (Number(t.paidAmount) || 0);
+      });
+      document.getElementById('recTotalBilled').textContent = fmtINR(billed);
+      document.getElementById('recCollected').textContent = fmtINR(collected);
+      document.getElementById('recPending').textContent = fmtINR(Math.max(0, billed - collected));
+
+      const q = (state.tripSearch || '').trim().toLowerCase();
+      const filtered = curr.trips.filter(t => {
+        const st = t.paymentStatus || 'Unpaid';
+        let payOk = true;
+        if (state.tripPayFilter === 'COLLECTED') payOk = (st === 'Paid' || st === 'Partially Paid');
+        else if (state.tripPayFilter === 'PENDING') payOk = (st === 'Unpaid' || st === 'Partially Paid');
+        else if (state.tripPayFilter !== 'ALL') payOk = (st === state.tripPayFilter);
+        if (!payOk) return false;
+        if (!q) return true;
+        const hay = `${t.id} ${t.truckReg || t.truckId} ${t.origin} ${t.dest} ${t.material} ${t.party || ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+      const tripNum = (id) => { const m = String(id).match(/(\d+)/); return m ? Number(m[1]) : 0; };
+      const sorted = [...filtered].sort((a, b) => {
+        const dCmp = b.date.localeCompare(a.date);
+        if (dCmp !== 0) return dCmp;
+        return tripNum(b.id) - tripNum(a.id);
+      });
+
+      const mobileEl = document.getElementById('tripsMobileList');
+      const tbody = document.getElementById('tripsTableBody');
+
+      if (!sorted.length) {
+        const emptyMsg = `No trips logged for ${fmtMonthLabel(state.selectedMonth)}${state.tripPayFilter !== 'ALL' ? ' (' + state.tripPayFilter + ')' : ''}.`;
+        mobileEl.innerHTML = `<div class="py-10 px-4 text-center text-sm text-slate-400">${emptyMsg}</div>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center text-slate-400">${emptyMsg}</td></tr>`;
+        return;
+      }
+
+      const getPayRowTone = (status) => {
+        if (status === 'Paid') return 'bg-emerald-100/75 dark:bg-emerald-950/40 border-l-4 border-l-emerald-500';
+        if (status === 'Partially Paid') return 'bg-amber-100/75 dark:bg-amber-950/40 border-l-4 border-l-amber-500';
+        return 'bg-rose-100/75 dark:bg-rose-950/40 border-l-4 border-l-rose-500';
+      };
+
+      // Mobile Cards (No horizontal scrolling needed!)
+      mobileEl.innerHTML = sorted.map((t) => {
+        const tone = getPayRowTone(t.paymentStatus || 'Unpaid');
+        const truck = state.data.trucks.find(x => x.id === t.truckId);
+        const reg = truck ? truck.reg : (t.truckReg || '—');
+        const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        const cost = getTripCost(t);
+        const margin = rev - cost;
+        const payBadge = getPaymentBadgeHTML(t.paymentStatus, t.paidAmount, rev);
+        return `
+          <div data-view-trip="${t.id}" class="p-4 space-y-2.5 ${tone} hover:brightness-95 cursor-pointer transition">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 num">${t.id}</span>
+                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">${reg}</span>
+                <span class="text-[11px] text-slate-400 num">${t.date}</span>
+              </div>
+              ${payBadge}
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>${t.origin} → ${t.dest}</span>
+                  ${t.podUrl ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">POD ✓</span>` : ''}
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">${t.material} • ${t.weight} MT${t.distance ? ' • ' + t.distance + ' km' : ''}${t.party ? ' • ' + t.party : ''}${(t.distance > 0 && t.dieselLiters > 0) ? ' • ' + (t.distance / t.dieselLiters).toFixed(1) + ' km/L' : ''}</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-1 text-xs bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5">
+              <div>
+                <div class="text-[10px] uppercase text-slate-400 font-semibold">Freight</div>
+                <div class="num font-bold text-slate-900 dark:text-white">${fmtINR(rev)}</div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase text-slate-400 font-semibold">Costs</div>
+                <div class="num font-bold text-rose-600 dark:text-rose-400">${fmtINR(cost)}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[10px] uppercase text-slate-400 font-semibold">Profit</div>
+                <div class="num font-extrabold ${margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}">${fmtINR(margin)}</div>
+              </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-0.5">
+              <button type="button" data-pdf-trip="${t.id}" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">PDF</button>
+              <button type="button" data-edit-trip="${t.id}" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">Edit</button>
+              <button type="button" data-delete-trip="${t.id}" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Desktop Table
+      tbody.innerHTML = sorted.map((t) => {
+        const tone = getPayRowTone(t.paymentStatus || 'Unpaid');
+        const truck = state.data.trucks.find(x => x.id === t.truckId);
+        const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        const cost = getTripCost(t);
+        const margin = rev - cost;
+        const rateVal = Number(t.rate) || (Number(t.weight) > 0 ? Math.round((Number(t.freight) || 0) / Number(t.weight)) : 0);
+        const payBadge = getPaymentBadgeHTML(t.paymentStatus, t.paidAmount, rev);
+        return `
+          <tr data-view-trip="${t.id}" class="cursor-pointer ${tone} hover:brightness-95 transition">
+            <td class="py-3 px-4 num text-xs whitespace-nowrap">
+              <div class="font-bold text-slate-800 dark:text-slate-200">${t.id}</div>
+              <div class="text-slate-500 dark:text-slate-400">${t.date}</div>
+            </td>
+            <td class="py-3 px-4 font-semibold text-xs whitespace-nowrap">${truck ? truck.reg : (t.truckReg || '—')}</td>
+            <td class="py-3 px-4">
+              <div class="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>${t.origin} → ${t.dest}</span>
+                ${t.podUrl ? `<span title="Receiving uploaded" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">POD</span>` : ''}
+              </div>
+              <div class="text-xs text-slate-500">${t.material}${t.party ? ' • ' + t.party : ''}</div>
+            </td>
+            <td class="py-3 px-4 text-right num text-xs">
+              <div>${t.weight} MT</div>
+              <div class="text-slate-400">${t.distance || 0} km</div>
+            </td>
+            <td class="py-3 px-4 text-right num">
+              <div class="font-semibold">${fmtINR(rev)}</div>
+              <div class="text-[11px] text-slate-400">${rateVal > 0 ? fmtINR(rateVal) + '/MT' : '—'}</div>
+            </td>
+            <td class="py-3 px-4 text-right num text-rose-600 dark:text-rose-400">${fmtINR(cost)}</td>
+            <td class="py-3 px-4 text-right num font-bold ${margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}">${fmtINR(margin)}</td>
+            <td class="py-3 px-4 text-center whitespace-nowrap">${payBadge}</td>
+            <td class="py-3 px-4 text-center no-print whitespace-nowrap">
+              <button type="button" data-pdf-trip="${t.id}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40">PDF</button>
+              <button type="button" data-edit-trip="${t.id}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40">Edit</button>
+              <button type="button" data-delete-trip="${t.id}" class="text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderExpensesTable(curr) {
+      document.getElementById('tabExpCount').textContent = curr.exps.length;
+      const tbody = document.getElementById('expensesTableBody');
+      const filtered = curr.exps.filter(e => state.expFilter === 'ALL' || e.category === state.expFilter);
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400">No expenses logged for this filter in ${fmtMonthLabel(state.selectedMonth)}.</td></tr>`;
+        return;
+      }
+
+      const catLabels = {
+        Diesel: 'Diesel / Fuel', AdditionalFuel: 'Additional Fuel Expense', Urea: 'Urea (AdBlue) Expense',
+        Toll: 'Toll Expense / FASTag', Transportation: 'Transportation Charges', Driver: 'Driver Expense',
+        Maintenance: 'Maintenance & Tyres', RoadTax: 'Road Tax (Quarterly)', PermitInsurance: 'Permit & Insurance (Annual)',
+        TaxPermit: 'Road Tax / Permit', EMI: 'Truck EMI', Miscellaneous: 'Miscellaneous Expenses', Other: 'Miscellaneous Expenses'
+      };
+      const catColors = {
+        Diesel: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+        AdditionalFuel: 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300',
+        Urea: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300',
+        Toll: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300',
+        Transportation: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
+        Driver: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300',
+        Maintenance: 'bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300',
+        RoadTax: 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300',
+        PermitInsurance: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+        TaxPermit: 'bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300',
+        EMI: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300',
+        Miscellaneous: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+      };
+
+      const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+      tbody.innerHTML = sorted.map(e => {
+        const truck = state.data.trucks.find(x => x.id === e.truckId);
+        const catText = catLabels[e.category] || e.category;
+        const badgeCls = catColors[e.category] || catColors.Miscellaneous;
+        const freq = e.frequency || (e.category === 'RoadTax' ? 'quarterly' : (e.category === 'PermitInsurance' ? 'annual' : 'monthly'));
+        const freqNote = freq === 'quarterly' ? `Quarterly • Paid ${fmtINR(e.amount)}` : (freq === 'annual' ? `Annual • Paid ${fmtINR(e.amount)}` : '');
+        return `
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+            <td class="py-3 px-4 num text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">${e.date}</td>
+            <td class="py-3 px-4 font-semibold text-xs whitespace-nowrap">${truck ? truck.reg : (e.truckReg || '—')}</td>
+            <td class="py-3 px-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeCls}">${catText}</span></td>
+            <td class="py-3 px-4 text-slate-700 dark:text-slate-300"><div>${e.notes}</div>${freqNote ? `<div class="text-[11px] text-slate-400">${freqNote}</div>` : ''}</td>
+            <td class="py-3 px-4 text-right num font-bold text-rose-600 dark:text-rose-400"><div>${fmtINR(e.monthlyShare)}</div>${freqNote ? `<div class="text-[10px] font-normal text-slate-400">monthly share</div>` : ''}</td>
+            <td class="py-3 px-4 text-center no-print whitespace-nowrap"><button type="button" data-delete-exp="${e.id}" class="text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40">Delete</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderTrucksList() {
+      document.getElementById('trucksList').innerHTML = state.data.trucks.map(t => `
+        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+          <div>
+            <div class="font-bold text-sm">${t.reg}</div>
+            <div class="text-xs text-slate-500">${t.model}</div>
+          </div>
+          ${state.data.trucks.length > 1 ? `<button type="button" data-delete-truck="${t.id}" class="text-xs font-semibold text-rose-600 hover:underline">Remove</button>` : `<span class="text-[11px] text-slate-400">Primary</span>`}
+        </div>
+      `).join('');
+    }
+
+    function renderAll() {
+      populateSelectors();
+      const curr = computeMonthMetrics(state.selectedMonth, state.selectedTruck);
+      const prev = computeMonthMetrics(shiftMonth(state.selectedMonth, -1), state.selectedTruck);
+      renderKPIs(curr, prev);
+      renderTruckScorecard();
+      renderPnLStatement(curr);
+      renderCharts(curr);
+      renderTripsTable(curr);
+      renderExpensesTable(curr);
+      renderTrucksList();
+    }
+
+    function openModal(id) {
+      const m = document.getElementById(id);
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function setTab(tab) {
+      state.activeTab = tab;
+      ['trips', 'overview', 'expenses'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.className = active
+          ? 'tab-btn flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm whitespace-nowrap'
+          : 'tab-btn flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap';
+      });
+    }
+
+    function generateTripPDF(id) {
+      const t = state.data.trips.find(x => x.id === id);
+      if (!t) return;
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('PDF library still loading — please try again');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const truck = state.data.trucks.find(x => x.id === t.truckId);
+      const reg = truck ? truck.reg : (t.truckReg || '—');
+      const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+      const cost = getTripCost(t);
+      const profit = rev - cost;
+      const marginPct = rev > 0 ? ((profit / rev) * 100).toFixed(1) : '0.0';
+      const rateVal = Number(t.rate) || (Number(t.weight) > 0 ? Math.round((Number(t.freight) || 0) / Number(t.weight)) : 0);
+      const pdfINR = (v) => 'Rs. ' + Math.round(Number(v) || 0).toLocaleString('en-IN');
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 595, 92, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FleetLedger — Trip P&L Voucher', 40, 42);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Trip ID: ${t.id}   |   Date: ${t.date}   |   Truck: ${reg}   |   Payment: ${t.paymentStatus || 'Unpaid'}`, 40, 66);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Route: ${t.origin}  ->  ${t.dest}`, 40, 126);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Material: ${t.material}   |   Weight: ${t.weight} MT   |   Distance: ${t.distance || 0} km   |   Rate: ${pdfINR(rateVal)}/MT`, 40, 146);
+
+      const rows = [
+        ['Gross Freight Revenue', pdfINR(rev)],
+        ['Fuel Expense', pdfINR(t.dieselCost || 0)],
+        ['Additional Fuel', pdfINR(t.addFuelCost || 0)],
+        ['Toll Charges', pdfINR(t.toll || 0)],
+        ['Driver Pay / Bata', pdfINR(t.bata || 0)],
+        ['Transportation Charge', pdfINR(t.transportCost || 0)],
+        ['Transit Charge', pdfINR(t.transitCost || 0)],
+        ['Overload Charge', pdfINR(t.overloadCost || 0)],
+        ['Urea Expense', pdfINR(t.ureaCost || 0)],
+        ['Miscellaneous / Other', pdfINR(t.miscCost || 0)],
+        ['Total Trip Cost', pdfINR(cost)],
+        ['Net Trip Profit (' + marginPct + '%)', pdfINR(profit)]
+      ];
+
+      let y = 180;
+      doc.setFontSize(11);
+      rows.forEach((r, idx) => {
+        const isHighlight = idx === 0 || idx >= rows.length - 2;
+        if (isHighlight) {
+          doc.setFillColor(241, 245, 249);
+          doc.rect(40, y - 14, 515, 24, 'F');
+          doc.setFont('helvetica', 'bold');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        doc.text(r[0], 50, y);
+        doc.text(r[1], 545, y, { align: 'right' });
+        doc.setDrawColor(226, 232, 240);
+        doc.line(40, y + 10, 555, y + 10);
+        y += 26;
+      });
+
+      if (t.paymentStatus === 'Partially Paid') {
+        y += 10;
+        doc.setFontSize(10);
+        doc.text(`Amount Received: ${pdfINR(t.paidAmount || 0)}   |   Balance Due: ${pdfINR(Math.max(0, rev - (Number(t.paidAmount) || 0)))}`, 40, y);
+      }
+      if (t.podUrl) {
+        y += 18;
+        doc.setTextColor(2, 132, 199);
+        doc.textWithLink('View Receiving / POD Photo in Google Drive', 40, y, { url: t.podUrl });
+      }
+      doc.save(`${t.id}_${reg}.pdf`);
+      showToast(`Downloaded ${t.id}_${reg}.pdf`);
+    }
+
+    function generateTripLogPDF() {
+      if (!window.jspdf || !window.jspdf.jsPDF) { showToast('PDF library still loading'); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const curr = computeMonthMetrics(state.selectedMonth, state.selectedTruck);
+      const tripNum = (id) => { const m = String(id).match(/(\d+)/); return m ? Number(m[1]) : 0; };
+      const sorted = [...curr.trips].sort((a, b) => b.date.localeCompare(a.date) || (tripNum(b.id) - tripNum(a.id)));
+      const truckLabel = state.selectedTruck === 'ALL' ? 'All Fleet Vehicles' : (state.data.trucks.find(t => t.id === state.selectedTruck)?.reg || state.selectedTruck);
+      const pdfINR = (v) => 'Rs.' + Math.round(Number(v) || 0).toLocaleString('en-IN');
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 842, 68, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`FleetLedger — Complete Trip Log (${fmtMonthLabel(state.selectedMonth)})`, 30, 30);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Vehicle: ${truckLabel}  |  Total Trips: ${sorted.length}  |  Total Revenue: ${pdfINR(curr.totalRevenue)}  |  Total Trip Costs: ${pdfINR(curr.variableCosts)}`, 30, 50);
+
+      const cols = [26, 66, 118, 176, 276, 330, 356, 392, 446, 498, 548, 600, 654, 710, 768];
+      const headers = ['ID', 'Date', 'Truck', 'Route (Origin -> Dest)', 'Material', 'MT', 'Dist', 'Freight', 'Diesel', 'Driver', 'Other', 'Tot Cost', 'Profit', 'Status', 'POD'];
+      let y = 92;
+      doc.setFillColor(241, 245, 249);
+      doc.rect(22, y - 12, 798, 20, 'F');
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      headers.forEach((h, i) => doc.text(h, cols[i], y));
+      y += 18;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      let sumRev = 0, sumDiesel = 0, sumDriver = 0, sumOther = 0, sumCost = 0, sumProf = 0;
+      sorted.forEach((t, idx) => {
+        if (y > 545) { doc.addPage(); y = 40; }
+        const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        const dieselAmt = (Number(t.dieselCost) || 0) + (Number(t.addFuelCost) || 0);
+        const driverAmt = Number(t.bata) || 0;
+        const cost = getTripCost(t);
+        const otherAmt = Math.max(0, cost - dieselAmt - driverAmt);
+        const prof = rev - cost;
+        sumRev += rev; sumDiesel += dieselAmt; sumDriver += driverAmt; sumOther += otherAmt; sumCost += cost; sumProf += prof;
+        if (idx % 2 === 1) { doc.setFillColor(248, 250, 252); doc.rect(22, y - 10, 798, 16, 'F'); }
+        doc.setTextColor(15, 23, 42);
+        doc.text(String(t.id).slice(0, 8), cols[0], y);
+        doc.text(String(t.date), cols[1], y);
+        doc.text(String(t.truckReg || t.truckId || '').slice(0, 11), cols[2], y);
+        doc.text(`${t.origin} -> ${t.dest}`.slice(0, 20), cols[3], y);
+        doc.text(String(t.material || '').slice(0, 10), cols[4], y);
+        doc.text(String(t.weight || 0), cols[5], y);
+        doc.text((t.distance || 0) + 'km', cols[6], y);
+        doc.text(pdfINR(rev), cols[7], y);
+        doc.text(pdfINR(dieselAmt), cols[8], y);
+        doc.text(pdfINR(driverAmt), cols[9], y);
+        doc.text(pdfINR(otherAmt), cols[10], y);
+        doc.text(pdfINR(cost), cols[11], y);
+        doc.text(pdfINR(prof), cols[12], y);
+        doc.text(String(t.paymentStatus || 'Unpaid').slice(0, 9), cols[13], y);
+        doc.text(t.podUrl ? 'Yes' : 'No', cols[14], y);
+        y += 18;
+      });
+
+      y += 6;
+      doc.setFillColor(226, 232, 240);
+      doc.rect(22, y - 12, 798, 22, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('MONTHLY TOTALS', cols[0], y + 2);
+      doc.text(pdfINR(sumRev), cols[7], y + 2);
+      doc.text(pdfINR(sumDiesel), cols[8], y + 2);
+      doc.text(pdfINR(sumDriver), cols[9], y + 2);
+      doc.text(pdfINR(sumOther), cols[10], y + 2);
+      doc.text(pdfINR(sumCost), cols[11], y + 2);
+      doc.text(pdfINR(sumProf), cols[12], y + 2);
+      doc.save(`FleetLedger_TripLog_${state.selectedMonth}.pdf`);
+      showToast(`Downloaded FleetLedger_TripLog_${state.selectedMonth}.pdf`);
+    }
+
+    function generateMonthlyPnLPDF() {
+      if (!window.jspdf || !window.jspdf.jsPDF) { showToast('PDF library still loading'); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const curr = computeMonthMetrics(state.selectedMonth, state.selectedTruck);
+      const truckLabel = state.selectedTruck === 'ALL' ? 'All Fleet Vehicles' : (state.data.trucks.find(t => t.id === state.selectedTruck)?.reg || state.selectedTruck);
+      const monthLabel = fmtMonthLabel(state.selectedMonth);
+      const pdfINR = (v) => (v < 0 ? '-Rs. ' : 'Rs. ') + Math.abs(Math.round(Number(v) || 0)).toLocaleString('en-IN');
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 595, 86, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FleetLedger — Monthly Profit & Loss Statement', 40, 38);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Vehicle: ${truckLabel}   |   Period: ${monthLabel}   |   Trips: ${curr.trips.length}`, 40, 62);
+
+      const rows = [
+        ['Total Gross Revenue (A)', pdfINR(curr.totalRevenue), true],
+        ['Diesel & Fuel', pdfINR(curr.catTotals.Diesel), false],
+        ['Additional Fuel & Urea', pdfINR(curr.catTotals.AdditionalFuel + curr.catTotals.Urea), false],
+        ['Driver Salary & Trip Pay', pdfINR(curr.catTotals.Driver), false],
+        ['Toll, Transport, Transit & Overload', pdfINR(curr.catTotals.Toll + curr.catTotals.Transportation + curr.catTotals.Transit + curr.catTotals.Overload), false],
+        ['Maintenance & Miscellaneous', pdfINR(curr.catTotals.Maintenance + curr.catTotals.Miscellaneous), false],
+        ['Total Variable Costs (B)', pdfINR(curr.variableCosts), true],
+        ['Road Tax (Quarterly Prorated)', pdfINR(curr.catTotals.RoadTax), false],
+        ['National Permit & Insurance (Annual Prorated)', pdfINR(curr.catTotals.PermitInsurance + curr.catTotals.TaxPermit), false],
+        ['Truck EMI / Finance', pdfINR(curr.catTotals.EMI), false],
+        ['Total Fixed Costs (C)', pdfINR(curr.fixedCosts), true],
+        ['NET MONTHLY PROFIT / (LOSS) (' + curr.marginPct.toFixed(1) + '%)', pdfINR(curr.netProfit), true]
+      ];
+      let y = 122;
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      rows.forEach(([lbl, val, bold]) => {
+        if (bold) { doc.setFillColor(241, 245, 249); doc.rect(40, y - 14, 515, 24, 'F'); doc.setFont('helvetica', 'bold'); }
+        else doc.setFont('helvetica', 'normal');
+        doc.text(lbl, 50, y);
+        doc.text(val, 545, y, { align: 'right' });
+        doc.setDrawColor(226, 232, 240);
+        doc.line(40, y + 10, 555, y + 10);
+        y += 26;
+      });
+      doc.save(`FleetLedger_PnL_${state.selectedMonth}.pdf`);
+      showToast(`Downloaded FleetLedger_PnL_${state.selectedMonth}.pdf`);
+    }
+
+    function exportCSV() {
+      const curr = computeMonthMetrics(state.selectedMonth, state.selectedTruck);
+      const rows = [['Type', 'Date', 'Vehicle', 'Category/Route', 'Details', 'Distance_km', 'Payment_Status', 'Revenue_INR', 'Expense_INR']];
+      curr.trips.forEach(t => {
+        const truck = state.data.trucks.find(x => x.id === t.truckId)?.reg || (t.truckReg || '');
+        const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        rows.push(['Trip', t.date, truck, `${t.origin} to ${t.dest}`, t.material, t.distance || 0, t.paymentStatus || 'Unpaid', rev, getTripCost(t)]);
+      });
+      curr.exps.forEach(e => {
+        const truck = state.data.trucks.find(x => x.id === e.truckId)?.reg || (e.truckReg || '');
+        rows.push(['Expense', e.date, truck, e.category, e.notes, 0, '-', 0, e.monthlyShare]);
+      });
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `FleetLedger_${state.selectedMonth}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('CSV exported for ' + fmtMonthLabel(state.selectedMonth));
+    }
+
+    function applyTheme(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      document.getElementById('iconSun').classList.toggle('hidden', !dark);
+      document.getElementById('iconMoon').classList.toggle('hidden', dark);
+      try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); } catch (e) {}
+      if (trendChartInstance || expenseChartInstance) renderCharts(computeMonthMetrics(state.selectedMonth, state.selectedTruck));
+    }
+
+    async function pullFromCloud(quiet = false) {
+      if (!state.syncUrl) { setSyncUI('local'); return; }
+      setSyncUI('syncing');
+      try {
+        const res = await fetch(state.syncUrl);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        if (json && json.ok) {
+          if (Array.isArray(json.trucks) && json.trucks.length > 0) {
+            state.data.trucks = json.trucks.map(tr => ({
+              id: String(tr.id || tr.reg).trim().toUpperCase(),
+              reg: String(tr.reg || tr.id).trim().toUpperCase(),
+              model: tr.model || 'Fleet Truck'
+            }));
+          }
+          state.data.trips = Array.isArray(json.trips) ? json.trips.map(t => {
+            const reg = String(t.truckReg || t.truckId || '').trim().toUpperCase();
+            return {
+              ...t,
+              truckId: reg,
+              truckReg: reg,
+              date: String(t.date).slice(0, 10),
+              weight: Number(t.weight) || 0,
+              rate: Number(t.rate) || 0,
+              distance: Number(t.distance) || 0,
+              freight: Number(t.freight) || 0,
+              extra: Number(t.extra) || 0,
+              dieselCost: Number(t.dieselCost) || 0,
+              addFuelCost: Number(t.addFuelCost) || 0,
+              ureaCost: Number(t.ureaCost) || 0,
+              transportCost: Number(t.transportCost) || 0,
+              transitCost: Number(t.transitCost) || 0,
+              overloadCost: Number(t.overloadCost) || 0,
+              miscCost: Number(t.miscCost) || 0,
+              dieselLiters: Number(t.dieselLiters) || 0,
+              toll: Number(t.toll) || 0,
+              bata: Number(t.bata) || 0,
+              paymentStatus: t.paymentStatus || 'Unpaid',
+              paidAmount: Number(t.paidAmount) || 0
+            };
+          }) : [];
+          state.data.expenses = Array.isArray(json.expenses) ? json.expenses.map(e => {
+            const reg = String(e.truckReg || e.truckId || '').trim().toUpperCase();
+            return { ...e, truckId: reg, truckReg: reg, date: String(e.date).slice(0, 10), amount: Number(e.amount) || 0 };
+          }) : [];
+          saveData();
+          renderAll();
+          setSyncUI('synced', 'Synced at ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+          if (!quiet) showToast('Synced with Google Sheet');
+        } else {
+          throw new Error('Invalid response');
+        }
+      } catch (err) {
+        setSyncUI('error', 'Sync failed — check Web App URL & access ("Anyone")');
+        if (!quiet) showToast('Cloud sync failed');
+      }
+    }
+
+    async function pushActionToCloud(action, payloadObj) {
+      if (!state.syncUrl) return;
+      setSyncUI('syncing');
+      try {
+        const res = await fetch(state.syncUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action, ...payloadObj })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        setSyncUI('synced', 'Synced at ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+      } catch (err) {
+        setSyncUI('error', 'Could not save to Google Sheet');
+        showToast('Saved locally; cloud sync failed');
+      }
+    }
+
+    function initAppIcon() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 180; c.height = 180;
+        const ctx = c.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 180, 180);
+        g.addColorStop(0, '#10b981'); g.addColorStop(1, '#0f766e');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.roundRect(0, 0, 180, 180, 40); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(40, 124); ctx.lineTo(40, 56); ctx.lineTo(110, 56); ctx.lineTo(110, 124);
+        ctx.moveTo(110, 76); ctx.lineTo(135, 76); ctx.lineTo(150, 98); ctx.lineTo(150, 124); ctx.lineTo(138, 124);
+        ctx.moveTo(72, 124); ctx.lineTo(112, 124); ctx.stroke();
+        ctx.beginPath(); ctx.arc(56, 124, 13, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(124, 124, 13, 0, Math.PI * 2); ctx.stroke();
+        const appleLink = document.getElementById('appleTouchIcon');
+        if (appleLink) appleLink.href = c.toDataURL('image/png');
+      } catch (e) {}
+    }
+
+    function initDriverUploadMode() {
+      const params = new URLSearchParams(window.location.search);
+      const tripId = params.get('upload');
+      if (!tripId) return false;
+      const api = params.get('api') || loadSyncUrl();
+      document.getElementById('drvTripId').textContent = tripId;
+      document.getElementById('drvTruck').textContent = params.get('truck') || '';
+      document.getElementById('drvRoute').textContent = params.get('route') || 'Trip Delivery';
+      document.getElementById('driverUploadView').classList.remove('hidden');
+
+      let compressedBase64 = '';
+      const fileInput = document.getElementById('drvFileInput');
+      const submitBtn = document.getElementById('btnDrvSubmit');
+      const statusMsg = document.getElementById('drvStatusMsg');
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        statusMsg.textContent = 'Preparing photo...';
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1400;
+            let w = img.width, h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            const dataUrl = c.toDataURL('image/jpeg', 0.78);
+            compressedBase64 = dataUrl.split(',')[1];
+            document.getElementById('drvPreviewImg').src = dataUrl;
+            document.getElementById('drvPreviewWrap').classList.remove('hidden');
+            document.getElementById('drvFileInfo').textContent = `Ready (${w}×${h})`;
+            submitBtn.disabled = false;
+            statusMsg.textContent = '';
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      submitBtn.addEventListener('click', async () => {
+        if (!api) { statusMsg.textContent = 'Upload link is missing Cloud Sync URL.'; return; }
+        if (!compressedBase64) return;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading...';
+        statusMsg.textContent = 'Saving photo to Google Drive...';
+        try {
+          const res = await fetch(api, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'uploadPod',
+              tripId,
+              filename: `${tripId}_${params.get('truck') || 'truck'}_receiving.jpg`,
+              mimeType: 'image/jpeg',
+              base64: compressedBase64,
+              remarks: document.getElementById('drvRemarks').value.trim()
+            })
+          });
+          const json = await res.json();
+          if (json && json.ok) {
+            submitBtn.textContent = 'Uploaded ✓';
+            statusMsg.textContent = 'Receiving photo saved to Google Drive! You can close this page.';
+          } else {
+            throw new Error('Failed');
+          }
+        } catch (err) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Upload Receiving Photo';
+          statusMsg.textContent = 'Upload failed. Check internet and try again.';
+        }
+      });
+      return true;
+    }
+
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (initDriverUploadMode()) return;
+      initAppIcon();
+      try { if (localStorage.getItem(THEME_KEY) === 'dark') applyTheme(true); } catch (e) {}
+
+      setTab('trips');
+      renderAll();
+      if (state.syncUrl) {
+        document.getElementById('inputSyncUrl').value = state.syncUrl;
+        pullFromCloud(true);
+      } else {
+        setSyncUI('local');
+      }
+      setInterval(() => {
+        if (state.syncUrl && document.visibilityState === 'visible') pullFromCloud(true);
+      }, 30000);
+
+      let reminderShownThisSession = false;
+      const check24HrPaymentReminder = () => {
+        if (reminderShownThisSession) return;
+        const now = Date.now();
+        const due = state.data.trips.filter(t => {
+          if ((t.paymentStatus || 'Unpaid') === 'Paid') return false;
+          const enteredAt = Number(t.createdAt) || new Date(t.date + 'T00:00:00').getTime();
+          return (now - enteredAt) >= 24 * 60 * 60 * 1000;
+        });
+        if (!due.length) return;
+        reminderShownThisSession = true;
+        document.getElementById('reminderTripsList').innerHTML = due.map(t => {
+          const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+          return `
+            <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-slate-900 dark:text-white truncate">${t.id} • ${t.truckReg || t.truckId} (${t.origin} → ${t.dest})</div>
+                <div class="text-[11px] text-slate-500 num">${t.date} • ${fmtINR(rev)} • <span class="font-semibold text-amber-600">${t.paymentStatus || 'Unpaid'}</span></div>
+              </div>
+              <button type="button" data-rem-paid="${t.id}" class="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Mark Paid</button>
+            </div>
+          `;
+        }).join('');
+        openModal('modalPaymentReminder');
+      };
+      setTimeout(check24HrPaymentReminder, 1200);
+
+      document.getElementById('reminderTripsList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-rem-paid]');
+        if (!btn) return;
+        const t = state.data.trips.find(x => x.id === btn.dataset.remPaid);
+        if (!t) return;
+        t.paymentStatus = 'Paid';
+        t.paidAmount = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        saveData();
+        pushActionToCloud('updateTrip', { payload: t });
+        renderAll();
+        btn.closest('div.p-3').remove();
+        if (!document.getElementById('reminderTripsList').children.length) closeModal('modalPaymentReminder');
+        showToast(`${t.id} marked Paid`);
+      });
+
+      document.getElementById('btnThemeToggle').addEventListener('click', () => applyTheme(!document.documentElement.classList.contains('dark')));
+      document.getElementById('selectTruck').addEventListener('change', (e) => { state.selectedTruck = e.target.value; renderAll(); });
+      document.getElementById('inputMonth').addEventListener('change', (e) => { if (e.target.value) { state.selectedMonth = e.target.value; renderAll(); } });
+      document.getElementById('btnPrevMonth').addEventListener('click', () => { state.selectedMonth = shiftMonth(state.selectedMonth, -1); renderAll(); });
+      document.getElementById('btnNextMonth').addEventListener('click', () => { state.selectedMonth = shiftMonth(state.selectedMonth, 1); renderAll(); });
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.tab)));
+      document.getElementById('filterExpCategory').addEventListener('change', (e) => { state.expFilter = e.target.value; renderExpensesTable(computeMonthMetrics(state.selectedMonth, state.selectedTruck)); });
+      document.getElementById('filterTripPayment').addEventListener('change', (e) => { state.tripPayFilter = e.target.value; renderTripsTable(computeMonthMetrics(state.selectedMonth, state.selectedTruck)); });
+      document.getElementById('searchTrips').addEventListener('input', (e) => { state.tripSearch = e.target.value; renderTripsTable(computeMonthMetrics(state.selectedMonth, state.selectedTruck)); });
+
+      let activeTripDetailId = null;
+      let userTypedDistance = false;
+
+      const syncPaymentFieldVisibility = () => {
+        const isPartial = document.getElementById('tripPaymentStatus').value === 'Partially Paid';
+        document.getElementById('tripPaidAmountWrap').classList.toggle('hidden', !isPartial);
+      };
+      document.getElementById('tripPaymentStatus').addEventListener('change', syncPaymentFieldVisibility);
+
+      const rebuildTripTruckOptions = (selectedVal) => {
+        const sel = document.getElementById('tripTruck');
+        sel.innerHTML = `<option value="" disabled ${!selectedVal ? 'selected' : ''}>-- Choose Truck Number --</option>` +
+          state.data.trucks.map(t => `<option value="${t.id}">${t.reg} (${t.model})</option>`).join('');
+        if (selectedVal) {
+          const match = state.data.trucks.find(t => t.id.toUpperCase() === selectedVal.toUpperCase() || t.reg.toUpperCase() === selectedVal.toUpperCase());
+          if (match) sel.value = match.id;
+        }
+      };
+
+      const openTripModal = () => {
+        userTypedDistance = false;
+        document.getElementById('formTrip').reset();
+        document.getElementById('tripId').value = '';
+        document.getElementById('modalTripTitle').textContent = 'Log New Trip';
+        document.getElementById('tripDate').value = `${state.selectedMonth}-15`;
+        document.getElementById('tripDistStatus').textContent = 'Auto';
+        document.getElementById('tripPaymentStatus').value = 'Unpaid';
+        syncPaymentFieldVisibility();
+        rebuildTripTruckOptions(state.selectedTruck !== 'ALL' ? state.selectedTruck : '');
+        openModal('modalTrip');
+      };
+
+      const openEditTrip = (id) => {
+        const t = state.data.trips.find(x => x.id === id);
+        if (!t) return;
+        userTypedDistance = Number(t.distance) > 0;
+        document.getElementById('formTrip').reset();
+        document.getElementById('tripId').value = t.id;
+        document.getElementById('modalTripTitle').textContent = `Edit Trip (${t.id})`;
+        document.getElementById('tripDate').value = t.date;
+        rebuildTripTruckOptions(t.truckId || t.truckReg || '');
+        document.getElementById('tripOrigin').value = t.origin || '';
+        document.getElementById('tripDest').value = t.dest || '';
+        document.getElementById('tripParty').value = t.party || '';
+        document.getElementById('tripMaterial').value = t.material || '';
+        document.getElementById('tripWeight').value = t.weight || 0;
+        document.getElementById('tripDistance').value = t.distance || '';
+        document.getElementById('tripRate').value = t.rate || (t.weight > 0 ? Math.round((t.freight || 0) / t.weight) : 0);
+        document.getElementById('tripFreight').value = t.freight || 0;
+        document.getElementById('tripExtra').value = t.extra || 0;
+        document.getElementById('tripPaymentStatus').value = t.paymentStatus || 'Unpaid';
+        document.getElementById('tripPaidAmount').value = t.paidAmount || 0;
+        syncPaymentFieldVisibility();
+        document.getElementById('tripDieselCost').value = t.dieselCost || 0;
+        document.getElementById('tripAddFuel').value = t.addFuelCost || 0;
+        document.getElementById('tripToll').value = t.toll || 0;
+        document.getElementById('tripBata').value = t.bata || 0;
+        document.getElementById('tripTransport').value = t.transportCost || 0;
+        document.getElementById('tripTransit').value = t.transitCost || 0;
+        document.getElementById('tripOverload').value = t.overloadCost || 0;
+        document.getElementById('tripUrea').value = t.ureaCost || 0;
+        document.getElementById('tripMisc').value = t.miscCost || 0;
+        document.getElementById('tripDieselLiters').value = t.dieselLiters || 0;
+        openModal('modalTrip');
+        if (!userTypedDistance) autoCalcDistance();
+      };
+
+      const buildDriverUploadLink = (t) => {
+        const base = window.location.href.split('?')[0];
+        const params = new URLSearchParams({
+          upload: t.id,
+          truck: t.truckReg || t.truckId || '',
+          route: `${t.origin || ''} to ${t.dest || ''}`
+        });
+        if (state.syncUrl) params.set('api', state.syncUrl);
+        return `${base}?${params.toString()}`;
+      };
+
+      const openTripDetails = (id) => {
+        const t = state.data.trips.find(x => x.id === id);
+        if (!t) return;
+        activeTripDetailId = id;
+        const truck = state.data.trucks.find(x => x.id === t.truckId);
+        const rev = (Number(t.freight) || 0) + (Number(t.extra) || 0);
+        const cost = getTripCost(t);
+        const profit = rev - cost;
+        const marginPct = rev > 0 ? ((profit / rev) * 100).toFixed(1) : '0.0';
+        const rateVal = Number(t.rate) || (Number(t.weight) > 0 ? Math.round((Number(t.freight) || 0) / Number(t.weight)) : 0);
+
+        document.getElementById('tdTripId').textContent = t.id;
+        document.getElementById('tdDate').textContent = t.date;
+        document.getElementById('tdRoute').textContent = `${t.origin} → ${t.dest}`;
+        const tripMileage = (t.distance > 0 && t.dieselLiters > 0) ? ` • ${(t.distance / t.dieselLiters).toFixed(1)} km/L` : '';
+        document.getElementById('tdMeta').textContent = `${truck ? truck.reg : (t.truckReg || '—')}${t.party ? ' • ' + t.party : ''} • ${t.material} • ${t.weight} MT${t.distance ? ' • ' + t.distance + ' km' : ''}${tripMileage}`;
+
+        const payEl = document.getElementById('tdPayBadge');
+        const pStatus = t.paymentStatus || 'Unpaid';
+        payEl.textContent = pStatus === 'Partially Paid' ? `Partial (${fmtINR(t.paidAmount || 0)})` : pStatus;
+        payEl.className = pStatus === 'Paid'
+          ? 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+          : pStatus === 'Partially Paid'
+            ? 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+            : 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
+
+        const banner = document.getElementById('tdProfitBanner');
+        const netEl = document.getElementById('tdNetProfit');
+        const pill = document.getElementById('tdMarginPill');
+        netEl.textContent = fmtINR(profit);
+        pill.textContent = `${marginPct}% margin`;
+        if (profit >= 0) {
+          banner.className = 'p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/60 flex items-center justify-between';
+          netEl.className = 'num text-2xl font-extrabold text-emerald-700 dark:text-emerald-300';
+          pill.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
+        } else {
+          banner.className = 'p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 dark:border-rose-800/60 flex items-center justify-between';
+          netEl.className = 'num text-2xl font-extrabold text-rose-700 dark:text-rose-300';
+          pill.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200';
+        }
+
+        const dRow = (label, val, cls = '') => `<div class="flex items-center justify-between px-4 py-2.5"><span class="text-slate-600 dark:text-slate-300">${label}</span><span class="num font-semibold ${cls}">${val}</span></div>`;
+        document.getElementById('tdBreakdown').innerHTML = [
+          dRow('Freight Rate', rateVal > 0 ? `${fmtINR(rateVal)} / MT` : '—'),
+          dRow('Total Freight Revenue', fmtINR(rev), 'text-emerald-600 dark:text-emerald-400'),
+          dRow('Fuel Expense', fmtINR(t.dieselCost || 0)),
+          dRow('Additional Fuel', fmtINR(t.addFuelCost || 0)),
+          dRow('Toll Charges', fmtINR(t.toll || 0)),
+          dRow('Driver Pay / Bata', fmtINR(t.bata || 0)),
+          dRow('Transportation Charge', fmtINR(t.transportCost || 0)),
+          dRow('Transit Charge', fmtINR(t.transitCost || 0)),
+          dRow('Overload Charge', fmtINR(t.overloadCost || 0)),
+          dRow('Urea Expense', fmtINR(t.ureaCost || 0)),
+          dRow('Miscellaneous / Other', fmtINR(t.miscCost || 0)),
+          dRow('Total Trip Cost', fmtINR(cost), 'text-rose-600 dark:text-rose-400 font-bold')
+        ].join('');
+
+        const podBadge = document.getElementById('tdPodBadge');
+        const podMeta = document.getElementById('tdPodMeta');
+        const viewPodBtn = document.getElementById('btnViewPod');
+        if (t.podUrl) {
+          podBadge.textContent = 'Uploaded ✓';
+          podBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
+          viewPodBtn.href = t.podUrl;
+          viewPodBtn.classList.remove('hidden');
+          if (t.podMeta) { podMeta.textContent = 'Driver Note: ' + t.podMeta; podMeta.classList.remove('hidden'); }
+          else podMeta.classList.add('hidden');
+        } else {
+          podBadge.textContent = 'Pending';
+          podBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
+          viewPodBtn.classList.add('hidden');
+          podMeta.classList.add('hidden');
+        }
+        const drvLink = buildDriverUploadLink(t);
+        document.getElementById('btnWhatsappDriver').href = `https://wa.me/?text=${encodeURIComponent('Please upload unloading receiving photo for Trip ' + t.id + ' (' + t.origin + ' to ' + t.dest + '): ' + drvLink)}`;
+        openModal('modalTripDetails');
+      };
+
+      const openExpModal = () => {
+        document.getElementById('formExpense').reset();
+        document.getElementById('expDate').value = `${state.selectedMonth}-15`;
+        document.getElementById('expCategory').value = 'RoadTax';
+        document.getElementById('expFrequency').value = 'quarterly';
+        document.getElementById('expProratePreview').textContent = '';
+        if (state.selectedTruck !== 'ALL') document.getElementById('expTruck').value = state.selectedTruck;
+        openModal('modalExpense');
+      };
+
+      document.getElementById('btnAddTripTop').addEventListener('click', openTripModal);
+      document.getElementById('btnAddTripInline').addEventListener('click', openTripModal);
+      document.getElementById('btnAddExpenseTop').addEventListener('click', openExpModal);
+      document.getElementById('btnAddExpenseInline').addEventListener('click', openExpModal);
+      document.getElementById('btnManageTrucks').addEventListener('click', () => openModal('modalTrucks'));
+      document.getElementById('btnSyncModal').addEventListener('click', () => { document.getElementById('inputSyncUrl').value = state.syncUrl || ''; openModal('modalSync'); });
+      document.getElementById('btnBackupModal').addEventListener('click', () => openModal('modalBackup'));
+      document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+      document.getElementById('btnPrintPnL').addEventListener('click', () => window.print());
+      document.getElementById('btnDownloadMonthlyPDF').addEventListener('click', generateMonthlyPnLPDF);
+      document.getElementById('btnDownloadTripLogPDF').addEventListener('click', generateTripLogPDF);
+      document.getElementById('btnShowAllTrucksPnL').addEventListener('click', () => { state.selectedTruck = 'ALL'; renderAll(); });
+      document.getElementById('truckScorecardGrid').addEventListener('click', (e) => {
+        const card = e.target.closest('[data-select-truck-card]');
+        if (!card) return;
+        state.selectedTruck = card.dataset.selectTruckCard;
+        renderAll();
+      });
+      const applyRecFilter = (f) => {
+        state.tripPayFilter = f;
+        document.getElementById('filterTripPayment').value = f;
+        renderTripsTable(computeMonthMetrics(state.selectedMonth, state.selectedTruck));
+      };
+      document.getElementById('btnRecAll').addEventListener('click', () => applyRecFilter('ALL'));
+      document.getElementById('btnRecCollected').addEventListener('click', () => applyRecFilter('COLLECTED'));
+      document.getElementById('btnRecPending').addEventListener('click', () => applyRecFilter('PENDING'));
+      document.getElementById('btnHelpModal').addEventListener('click', () => openModal('modalHelp'));
+      document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+
+      const quickUpdatePayment = (status) => {
+        const t = state.data.trips.find(x => x.id === activeTripDetailId);
+        if (!t) return;
+        if (status === 'Partially Paid') {
+          closeModal('modalTripDetails');
+          openEditTrip(t.id);
+          document.getElementById('tripPaymentStatus').value = 'Partially Paid';
+          syncPaymentFieldVisibility();
+          return;
+        }
+        t.paymentStatus = status;
+        t.paidAmount = status === 'Paid' ? ((Number(t.freight) || 0) + (Number(t.extra) || 0)) : 0;
+        saveData();
+        pushActionToCloud('updateTrip', { payload: t });
+        renderAll();
+        openTripDetails(t.id);
+        showToast(`${t.id} marked ${status}`);
+      };
+      document.getElementById('btnQuickMarkPaid').addEventListener('click', () => quickUpdatePayment('Paid'));
+      document.getElementById('btnQuickMarkPartial').addEventListener('click', () => quickUpdatePayment('Partially Paid'));
+      document.getElementById('btnQuickMarkUnpaid').addEventListener('click', () => quickUpdatePayment('Unpaid'));
+      document.getElementById('btnEditTripFromDetails').addEventListener('click', () => { if (activeTripDetailId) { closeModal('modalTripDetails'); openEditTrip(activeTripDetailId); } });
+      document.getElementById('btnDownloadTripPDF').addEventListener('click', () => { if (activeTripDetailId) generateTripPDF(activeTripDetailId); });
+      document.getElementById('btnDeleteTripFromDetails').addEventListener('click', () => {
+        if (!activeTripDetailId) return;
+        const delId = activeTripDetailId;
+        state.data.trips = state.data.trips.filter(t => t.id !== delId);
+        saveData(); pushActionToCloud('deleteTrip', { id: delId }); closeModal('modalTripDetails'); renderAll(); showToast('Trip removed');
+      });
+
+      document.getElementById('btnCopyDriverLink').addEventListener('click', async () => {
+        const t = state.data.trips.find(x => x.id === activeTripDetailId);
+        if (!t) return;
+        if (!state.syncUrl) { showToast('Connect Cloud Sync first so driver link can upload to Drive'); return; }
+        const link = buildDriverUploadLink(t);
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(link);
+          else { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+          showToast('Driver upload link copied!');
+        } catch (e) { showToast('Could not copy link'); }
+      });
+
+      const recalcFreightFromRate = () => {
+        const w = Number(document.getElementById('tripWeight').value) || 0;
+        const r = Number(document.getElementById('tripRate').value) || 0;
+        if (w > 0 && r > 0) document.getElementById('tripFreight').value = Math.round(w * r);
+      };
+      document.getElementById('tripWeight').addEventListener('input', recalcFreightFromRate);
+      document.getElementById('tripRate').addEventListener('input', recalcFreightFromRate);
+
+      // Auto distance calculation (respects manual user override)
+      const PLACE_COORDS = {
+        'garhwa': [24.1611, 83.8091], 'medininagar': [24.0358, 84.0725], 'daltonganj': [24.0358, 84.0725],
+        'ranchi': [23.3441, 85.3096], 'kharswan': [22.7931, 85.8336], 'kharsawan': [22.7931, 85.8336],
+        'saraikela': [22.6974, 85.9324], 'ketar': [24.3315, 83.5892], 'kharundih': [24.2120, 83.7150],
+        'ambikapur': [23.1186, 83.1950], 'tandwa': [23.8542, 85.0195], 'magadh': [23.8750, 84.9910],
+        'renusagar': [24.2055, 82.7755], 'japla': [24.5316, 84.0005], 'chatra': [24.2060, 84.8703],
+        'jamshedpur': [22.8046, 86.2029], 'raipur': [21.2514, 81.6296], 'dhanbad': [23.7957, 86.4304],
+        'bokaro': [23.6693, 86.1511], 'shree cement': [21.6285, 82.0672]
+      };
+      const geoCache = {};
+      const haversineRoadKm = (a, b) => {
+        const R = 6371, dLat = (b[0] - a[0]) * Math.PI / 180, dLon = (b[1] - a[1]) * Math.PI / 180;
+        const x = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * Math.PI / 180) * Math.cos(b[0] * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+        return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)) * 1.28);
+      };
+      const geocodePlace = async (name) => {
+        const key = name.trim().toLowerCase();
+        if (!key) return null;
+        if (PLACE_COORDS[key]) return PLACE_COORDS[key];
+        if (geoCache[key]) return geoCache[key];
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(name + ', India')}`);
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            geoCache[key] = coords;
+            return coords;
+          }
+        } catch (e) {}
+        return null;
+      };
+      let distTimer = null;
+      const autoCalcDistance = () => {
+        if (userTypedDistance) return;
+        const orig = document.getElementById('tripOrigin').value.trim();
+        const dest = document.getElementById('tripDest').value.trim();
+        const statusEl = document.getElementById('tripDistStatus');
+        if (orig.length < 3 || dest.length < 3) { statusEl.textContent = 'Auto'; return; }
+        clearTimeout(distTimer);
+        statusEl.textContent = 'Calculating...';
+        distTimer = setTimeout(async () => {
+          const c1 = await geocodePlace(orig);
+          const c2 = await geocodePlace(dest);
+          if (!c1 || !c2) { statusEl.textContent = 'Manual'; return; }
+          let km = haversineRoadKm(c1, c2);
+          try {
+            const rRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=false`);
+            const rJson = await rRes.json();
+            if (rJson && rJson.routes && rJson.routes[0]) km = Math.round(rJson.routes[0].distance / 1000);
+          } catch (e) {}
+          if (!userTypedDistance) {
+            document.getElementById('tripDistance').value = km;
+            statusEl.textContent = `~${km} km`;
+          }
+        }, 600);
+      };
+      document.getElementById('tripDistance').addEventListener('input', () => { userTypedDistance = Number(document.getElementById('tripDistance').value) > 0; });
+      document.getElementById('tripOrigin').addEventListener('input', autoCalcDistance);
+      document.getElementById('tripDest').addEventListener('input', autoCalcDistance);
+      document.getElementById('tripOrigin').addEventListener('blur', autoCalcDistance);
+      document.getElementById('tripDest').addEventListener('blur', autoCalcDistance);
+
+      // Auto-fill missing distance for existing trips using known hub coords without prompting
+      const backfillMissingDistances = async () => {
+        let changed = false;
+        for (const t of state.data.trips) {
+          if (!Number(t.distance) && t.origin && t.dest) {
+            const c1 = await geocodePlace(t.origin);
+            const c2 = await geocodePlace(t.dest);
+            if (c1 && c2) {
+              let km = haversineRoadKm(c1, c2);
+              try {
+                const rRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1[1]},${c1[0]};${c2[1]},${c2[0]}?overview=false`);
+                const rJson = await rRes.json();
+                if (rJson && rJson.routes && rJson.routes[0]) km = Math.round(rJson.routes[0].distance / 1000);
+              } catch (e) {}
+              t.distance = km;
+              changed = true;
+            }
+          }
+        }
+        if (changed) { saveData(); renderAll(); }
+      };
+      setTimeout(backfillMissingDistances, 1800);
+
+      const updateExpProratePreview = () => {
+        const amt = Number(document.getElementById('expAmount').value) || 0;
+        const freq = document.getElementById('expFrequency').value;
+        const prevEl = document.getElementById('expProratePreview');
+        if (!amt) { prevEl.textContent = ''; return; }
+        if (freq === 'quarterly') prevEl.textContent = `Counts as ${fmtINR(Math.round(amt / 3))}/mo across 3 months`;
+        else if (freq === 'annual') prevEl.textContent = `Counts as ${fmtINR(Math.round(amt / 12))}/mo across 12 months`;
+        else prevEl.textContent = `Counts as ${fmtINR(amt)} in this month`;
+      };
+      document.getElementById('expCategory').addEventListener('change', (e) => {
+        const v = e.target.value;
+        document.getElementById('expFrequency').value = v === 'RoadTax' ? 'quarterly' : (v === 'PermitInsurance' ? 'annual' : 'monthly');
+        updateExpProratePreview();
+      });
+      document.getElementById('expFrequency').addEventListener('change', updateExpProratePreview);
+      document.getElementById('expAmount').addEventListener('input', updateExpProratePreview);
+
+      document.getElementById('formTrip').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const selTruckId = document.getElementById('tripTruck').value;
+        if (!selTruckId) { showToast('Please choose a truck number'); return; }
+        const existingId = document.getElementById('tripId').value.trim();
+        const wVal = Number(document.getElementById('tripWeight').value) || 0;
+        const fVal = Number(document.getElementById('tripFreight').value) || 0;
+        const rInput = Number(document.getElementById('tripRate').value) || 0;
+        const selTruckObj = state.data.trucks.find(x => x.id === selTruckId);
+        let nextNum = state.data.trips.length + 1;
+        state.data.trips.forEach(t => { const m = String(t.id).match(/TRP-(\d+)/); if (m && Number(m[1]) >= nextNum) nextNum = Number(m[1]) + 1; });
+        const existingTrip = existingId ? state.data.trips.find(x => x.id === existingId) : null;
+        const pStatus = document.getElementById('tripPaymentStatus').value;
+        const trip = {
+          id: existingId || ('TRP-' + String(nextNum).padStart(3, '0')),
+          date: document.getElementById('tripDate').value,
+          truckId: selTruckId,
+          truckReg: selTruckObj ? selTruckObj.reg : selTruckId,
+          origin: document.getElementById('tripOrigin').value.trim(),
+          dest: document.getElementById('tripDest').value.trim(),
+          party: document.getElementById('tripParty').value.trim(),
+          material: document.getElementById('tripMaterial').value.trim(),
+          weight: wVal,
+          rate: rInput > 0 ? rInput : (wVal > 0 ? Math.round(fVal / wVal) : 0),
+          distance: Number(document.getElementById('tripDistance').value) || 0,
+          freight: fVal,
+          extra: Number(document.getElementById('tripExtra').value) || 0,
+          paymentStatus: pStatus,
+          paidAmount: pStatus === 'Paid' ? fVal : (pStatus === 'Partially Paid' ? (Number(document.getElementById('tripPaidAmount').value) || 0) : 0),
+          dieselCost: Number(document.getElementById('tripDieselCost').value) || 0,
+          addFuelCost: Number(document.getElementById('tripAddFuel').value) || 0,
+          ureaCost: Number(document.getElementById('tripUrea').value) || 0,
+          transportCost: Number(document.getElementById('tripTransport').value) || 0,
+          transitCost: Number(document.getElementById('tripTransit').value) || 0,
+          overloadCost: Number(document.getElementById('tripOverload').value) || 0,
+          miscCost: Number(document.getElementById('tripMisc').value) || 0,
+          dieselLiters: Number(document.getElementById('tripDieselLiters').value) || 0,
+          toll: Number(document.getElementById('tripToll').value) || 0,
+          bata: Number(document.getElementById('tripBata').value) || 0,
+          createdAt: existingTrip ? (existingTrip.createdAt || Date.now()) : Date.now(),
+          podUrl: existingTrip ? (existingTrip.podUrl || '') : '',
+          podMeta: existingTrip ? (existingTrip.podMeta || '') : ''
+        };
+        if (existingId) {
+          const idx = state.data.trips.findIndex(x => x.id === existingId);
+          if (idx >= 0) state.data.trips[idx] = trip; else state.data.trips.push(trip);
+          pushActionToCloud('updateTrip', { payload: trip });
+          showToast('Trip updated');
+        } else {
+          state.data.trips.push(trip);
+          pushActionToCloud('addTrip', { payload: trip });
+          showToast('Trip logged successfully');
+        }
+        state.selectedMonth = trip.date.slice(0, 7);
+        saveData();
+        closeModal('modalTrip');
+        renderAll();
+      });
+
+      document.getElementById('formExpense').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const expTruckId = document.getElementById('expTruck').value;
+        const expTruckObj = state.data.trucks.find(x => x.id === expTruckId);
+        const exp = {
+          id: 'ex_' + Date.now(),
+          date: document.getElementById('expDate').value,
+          truckId: expTruckId,
+          truckReg: expTruckObj ? expTruckObj.reg : expTruckId,
+          category: document.getElementById('expCategory').value,
+          notes: document.getElementById('expNotes').value.trim(),
+          amount: Number(document.getElementById('expAmount').value) || 0,
+          frequency: document.getElementById('expFrequency').value || 'monthly'
+        };
+        state.data.expenses.push(exp);
+        state.selectedMonth = exp.date.slice(0, 7);
+        saveData();
+        pushActionToCloud('addExpense', { payload: exp });
+        closeModal('modalExpense');
+        renderAll();
+        showToast('Expense added');
+      });
+
+      document.getElementById('formTruck').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const reg = document.getElementById('newTruckReg').value.trim().toUpperCase();
+        const model = document.getElementById('newTruckModel').value.trim();
+        const newTruck = { id: reg, reg, model };
+        if (!state.data.trucks.some(t => t.reg === reg)) state.data.trucks.push(newTruck);
+        saveData();
+        document.getElementById('formTruck').reset();
+        renderAll();
+        showToast(`Added ${reg} to fleet`);
+      });
+
+      // Delegated Trip Actions (both Mobile Cards & Desktop Table)
+      const handleTripClick = (e) => {
+        const pdfBtn = e.target.closest('[data-pdf-trip]');
+        if (pdfBtn) { generateTripPDF(pdfBtn.dataset.pdfTrip); return; }
+        const delBtn = e.target.closest('[data-delete-trip]');
+        if (delBtn) {
+          const id = delBtn.dataset.deleteTrip;
+          state.data.trips = state.data.trips.filter(t => t.id !== id);
+          saveData(); pushActionToCloud('deleteTrip', { id }); renderAll(); showToast('Trip removed');
+          return;
+        }
+        const editBtn = e.target.closest('[data-edit-trip]');
+        if (editBtn) { openEditTrip(editBtn.dataset.editTrip); return; }
+        const row = e.target.closest('[data-view-trip]');
+        if (row) openTripDetails(row.dataset.viewTrip);
+      };
+      document.getElementById('tripsTableBody').addEventListener('click', handleTripClick);
+      document.getElementById('tripsMobileList').addEventListener('click', handleTripClick);
+
+      document.getElementById('expensesTableBody').addEventListener('click', (e) => {
+        const id = e.target.dataset.deleteExp;
+        if (!id) return;
+        state.data.expenses = state.data.expenses.filter(x => x.id !== id);
+        saveData(); pushActionToCloud('deleteExpense', { id }); renderAll(); showToast('Expense removed');
+      });
+
+      document.getElementById('trucksList').addEventListener('click', (e) => {
+        const id = e.target.dataset.deleteTruck;
+        if (!id || state.data.trucks.length <= 1) return;
+        state.data.trucks = state.data.trucks.filter(t => t.id !== id);
+        if (state.selectedTruck === id) state.selectedTruck = 'ALL';
+        saveData(); renderAll(); showToast('Vehicle removed');
+      });
+
+      // Cloud Sync buttons
+      document.getElementById('btnSaveSyncUrl').addEventListener('click', () => {
+        const url = document.getElementById('inputSyncUrl').value.trim();
+        if (!url.startsWith('https://')) { showToast('Please enter a valid https:// Apps Script URL'); return; }
+        state.syncUrl = url;
+        try { localStorage.setItem(SYNC_URL_KEY, url); } catch (e) {}
+        pullFromCloud(false);
+      });
+      document.getElementById('btnPushCloud').addEventListener('click', async () => {
+        if (!state.syncUrl) { showToast('Save your Apps Script URL first'); return; }
+        for (const t of state.data.trips) await pushActionToCloud('addTrip', { payload: t });
+        showToast('Local trips pushed to Google Sheet');
+      });
+      document.getElementById('btnDisconnectSync').addEventListener('click', () => {
+        state.syncUrl = '';
+        try { localStorage.removeItem(SYNC_URL_KEY); } catch (e) {}
+        document.getElementById('inputSyncUrl').value = '';
+        setSyncUI('local');
+        showToast('Disconnected from Google Sheet');
+      });
+      document.getElementById('btnCopyScript').addEventListener('click', async () => {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(APPS_SCRIPT_CODE);
+          else { const ta = document.createElement('textarea'); ta.value = APPS_SCRIPT_CODE; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+          showToast('Apps Script copied!');
+        } catch (e) { showToast('Copy failed'); }
+      });
+
+      // Backup & Reset
+      document.getElementById('btnExportJSON').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `FleetLedger_Backup_${new Date().toISOString().slice(0, 10)}.json`; a.click();
+        URL.revokeObjectURL(url); showToast('JSON backup downloaded');
+      });
+      document.getElementById('inputImportJSON').addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            if (Array.isArray(parsed.trucks) && Array.isArray(parsed.trips) && Array.isArray(parsed.expenses)) {
+              state.data = parsed; saveData(); closeModal('modalBackup'); renderAll(); showToast('Backup restored');
+            } else showToast('Invalid backup file');
+          } catch (err) { showToast('Could not read JSON file'); }
+        };
+        reader.readAsText(file);
+      });
+      document.getElementById('btnResetSample').addEventListener('click', () => {
+        state.data = JSON.parse(JSON.stringify(DEFAULT_DATA)); state.selectedTruck = 'ALL'; state.selectedMonth = '2026-11';
+        saveData(); closeModal('modalBackup'); renderAll(); showToast('Sample data restored');
+      });
+      document.getElementById('btnClearAll').addEventListener('click', () => {
+        state.data.trips = []; state.data.expenses = []; saveData(); closeModal('modalBackup'); renderAll(); showToast('All trips & expenses cleared');
+      });
+    });
+  </script>
+</body>
+</html>
